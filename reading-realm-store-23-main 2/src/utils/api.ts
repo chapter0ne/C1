@@ -1,4 +1,4 @@
-const API_BASE = (window as any)._env_?.API_BASE || 'http://localhost:5000/api';
+const API_BASE = (window as any)._env_?.API_BASE || 'https://backend-8zug.onrender.com/api';
 
 async function request(method: string, url: string, data?: any) {
   const token = localStorage.getItem('token');

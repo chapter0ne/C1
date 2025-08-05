@@ -64,27 +64,27 @@ C1/
 - Cloudinary account
 
 ### Backend Setup
-```bash
-cd backend
-npm install
+   ```bash
+   cd backend
+   npm install
 cp .env.example .env
 # Edit .env with your configuration
-npm start
-```
+   npm start
+   ```
 
 ### Admin Dashboard Setup
-```bash
+   ```bash
 cd chapterone-admin-command-center-98-main
-npm install
+   npm install
 npm run dev
 ```
 
 ### Reader Application Setup
-```bash
+   ```bash
 cd "reading-realm-store-23-main 2"
 npm install
-npm run dev
-```
+   npm run dev
+   ```
 
 ## 🔧 Environment Variables
 
