@@ -207,3 +207,5 @@ uploads/
 
 # Cloudinary local cache
 .cloudinary/ 
+# Local Netlify folder
+.netlify
