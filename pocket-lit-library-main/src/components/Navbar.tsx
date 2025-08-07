@@ -73,7 +73,7 @@ const Navbar: React.FC = () => {
           </a>
           
           <WaitlistButton className="relative px-5 py-2 overflow-hidden font-light tracking-tighter text-white rounded-full shadow-md">
-            Join Waitlist
+            Start Reading
           </WaitlistButton>
         </div>
         
@@ -120,7 +120,7 @@ const Navbar: React.FC = () => {
               </a>
               <div onClick={() => setIsMenuOpen(false)}>
                 <WaitlistButton className="text-center w-full bg-chapterRed-500 text-white py-3 px-4 rounded-full transition-all hover:shadow-md hover:bg-chapterRed-600 font-light tracking-tighter">
-                  Join Waitlist
+                  Start Reading
                 </WaitlistButton>
               </div>
             </div>
