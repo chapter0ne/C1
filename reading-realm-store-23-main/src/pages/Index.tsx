@@ -10,6 +10,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBooks } from '@/hooks/useBooks';
 import { useUserData } from '@/contexts/UserDataContext';
 
+// Skeleton loader for book carousels
+const BookCarouselSkeleton = () => (
+  <div className="flex gap-4 overflow-x-auto pb-2">
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} className="w-32 h-48 bg-gray-200 animate-pulse rounded-lg" />
+    ))}
+  </div>
+);
+
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,12 +28,13 @@ const Index = () => {
   const { data: books = [], isLoading: booksLoading, error: booksError } = useBooks();
   const { userLibrary, wishlist, cart } = useUserData();
 
-  if (booksLoading) {
-    return <div>Loading homepage...</div>;
-  }
-  if (booksError) {
-    return <div>Error loading homepage data.</div>;
-  }
+  // Remove blocking loading/error states
+  // if (booksLoading) {
+  //   return <div>Loading homepage...</div>;
+  // }
+  // if (booksError) {
+  //   return <div>Error loading homepage data.</div>;
+  // }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,55 +215,59 @@ const Index = () => {
               See All
             </button>
           </div>
-          
           <div className="lg:hidden">
-            <InfiniteBookCarousel 
-              books={books}
-              getBookState={(book) => ({
-                isInLibrary: isBookInLibrary(book._id),
-                isInWishlist: isBookInWishlist(book._id),
-                isInCart: isBookInCart(book._id)
-              })}
-              onAddToWishlist={handleAddToWishlist}
-            />
+            {booksLoading ? <BookCarouselSkeleton /> : (
+              <InfiniteBookCarousel 
+                books={books}
+                getBookState={(book) => ({
+                  isInLibrary: isBookInLibrary(book._id),
+                  isInWishlist: isBookInWishlist(book._id),
+                  isInCart: isBookInCart(book._id)
+                })}
+                onAddToWishlist={handleAddToWishlist}
+              />
+            )}
           </div>
-
           <div className="hidden lg:grid grid-cols-6 gap-6">
-            {books.slice(0, 12).map((book) => (
-              <Link key={book._id} to={user ? `/book/${book._id}` : '/auth'} className="block group">
-                <div className="flex flex-col">
-                  <div className="relative mb-3">
-                    <div className={`aspect-[3/4] bg-gradient-to-br ${book.gradient} rounded-lg flex items-center justify-center text-white relative overflow-hidden shadow-lg`}>
-                      <div className="absolute inset-0 bg-black/10"></div>
-                      <div className="text-center z-10 p-4">
-                        <h3 className="font-bold text-sm leading-tight mb-1">{book.title.split(' ')[0]}</h3>
-                        <h3 className="font-bold text-sm leading-tight">{book.title.split(' ').slice(1).join(' ')}</h3>
+            {booksLoading ? (
+              Array.from({ length: 12 }).map((_, i) => <div key={i} className="w-full h-64 bg-gray-200 animate-pulse rounded-lg" />)
+            ) : (
+              books.slice(0, 12).map((book) => (
+                <Link key={book._id} to={user ? `/book/${book._id}` : '/auth'} className="block group">
+                  <div className="flex flex-col">
+                    <div className="relative mb-3">
+                      <div className={`aspect-[3/4] bg-gradient-to-br ${book.gradient} rounded-lg flex items-center justify-center text-white relative overflow-hidden shadow-lg`}>
+                        <div className="absolute inset-0 bg-black/10"></div>
+                        <div className="text-center z-10 p-4">
+                          <h3 className="font-bold text-sm leading-tight mb-1">{book.title.split(' ')[0]}</h3>
+                          <h3 className="font-bold text-sm leading-tight">{book.title.split(' ').slice(1).join(' ')}</h3>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleAddToWishlist(book._id);
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Heart className="w-3 h-3" />
+                        </button>
                       </div>
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleAddToWishlist(book._id);
-                        }}
-                        className="absolute top-2 right-2 p-1 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Heart className="w-3 h-3" />
-                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{book.title}</h3>
+                      <p className="text-xs text-gray-600">{book.author}</p>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3 text-black fill-black" />
+                        <span className="text-xs text-gray-700 font-medium">{typeof book.rating === 'number' ? book.rating.toFixed(1) : 'N/A'}</span>
+                      </div>
+                      <p className={`text-sm font-semibold ${isBookFree(book) ? "text-green-600" : "text-gray-900"}`}>
+                        {isBookFree(book) ? "Free" : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 'N/A'}`}
+                      </p>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{book.title}</h3>
-                    <p className="text-xs text-gray-600">{book.author}</p>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 text-black fill-black" />
-                      <span className="text-xs text-gray-700 font-medium">{typeof book.rating === 'number' ? book.rating.toFixed(1) : 'N/A'}</span>
-                    </div>
-                    <p className={`text-sm font-semibold ${isBookFree(book) ? "text-green-600" : "text-gray-900"}`}>
-                      {isBookFree(book) ? "Free" : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 'N/A'}`}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -266,55 +280,59 @@ const Index = () => {
               See All
             </button>
           </div>
-          
           <div className="lg:hidden">
-            <InfiniteBookCarousel 
-              books={books}
-              getBookState={(book) => ({
-                isInLibrary: isBookInLibrary(book._id),
-                isInWishlist: isBookInWishlist(book._id),
-                isInCart: isBookInCart(book._id)
-              })}
-              onAddToWishlist={handleAddToWishlist}
-            />
+            {booksLoading ? <BookCarouselSkeleton /> : (
+              <InfiniteBookCarousel 
+                books={books}
+                getBookState={(book) => ({
+                  isInLibrary: isBookInLibrary(book._id),
+                  isInWishlist: isBookInWishlist(book._id),
+                  isInCart: isBookInCart(book._id)
+                })}
+                onAddToWishlist={handleAddToWishlist}
+              />
+            )}
           </div>
-
           <div className="hidden lg:grid grid-cols-6 gap-6">
-            {books.slice(0, 12).map((book) => (
-              <Link key={book._id} to={user ? `/book/${book._id}` : '/auth'} className="block group">
-                <div className="flex flex-col">
-                  <div className="relative mb-3">
-                    <div className={`aspect-[3/4] bg-gradient-to-br ${book.gradient} rounded-lg flex items-center justify-center text-white relative overflow-hidden shadow-lg`}>
-                      <div className="absolute inset-0 bg-black/10"></div>
-                      <div className="text-center z-10 p-4">
-                        <h3 className="font-bold text-sm leading-tight mb-1">{book.title.split(' ')[0]}</h3>
-                        <h3 className="font-bold text-sm leading-tight">{book.title.split(' ').slice(1).join(' ')}</h3>
+            {booksLoading ? (
+              Array.from({ length: 12 }).map((_, i) => <div key={i} className="w-full h-64 bg-gray-200 animate-pulse rounded-lg" />)
+            ) : (
+              books.slice(0, 12).map((book) => (
+                <Link key={book._id} to={user ? `/book/${book._id}` : '/auth'} className="block group">
+                  <div className="flex flex-col">
+                    <div className="relative mb-3">
+                      <div className={`aspect-[3/4] bg-gradient-to-br ${book.gradient} rounded-lg flex items-center justify-center text-white relative overflow-hidden shadow-lg`}>
+                        <div className="absolute inset-0 bg-black/10"></div>
+                        <div className="text-center z-10 p-4">
+                          <h3 className="font-bold text-sm leading-tight mb-1">{book.title.split(' ')[0]}</h3>
+                          <h3 className="font-bold text-sm leading-tight">{book.title.split(' ').slice(1).join(' ')}</h3>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleAddToWishlist(book._id);
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Heart className="w-3 h-3" />
+                        </button>
                       </div>
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleAddToWishlist(book._id);
-                        }}
-                        className="absolute top-2 right-2 p-1 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Heart className="w-3 h-3" />
-                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{book.title}</h3>
+                      <p className="text-xs text-gray-600">{book.author}</p>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3 text-black fill-black" />
+                        <span className="text-xs text-gray-700 font-medium">{typeof book.rating === 'number' ? book.rating.toFixed(1) : 'N/A'}</span>
+                      </div>
+                      <p className={`text-sm font-semibold ${isBookFree(book) ? "text-green-600" : "text-gray-900"}`}>
+                        {isBookFree(book) ? "Free" : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 'N/A'}`}
+                      </p>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{book.title}</h3>
-                    <p className="text-xs text-gray-600">{book.author}</p>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 text-black fill-black" />
-                      <span className="text-xs text-gray-700 font-medium">{typeof book.rating === 'number' ? book.rating.toFixed(1) : 'N/A'}</span>
-                    </div>
-                    <p className={`text-sm font-semibold ${isBookFree(book) ? "text-green-600" : "text-gray-900"}`}>
-                      {isBookFree(book) ? "Free" : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 'N/A'}`}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>

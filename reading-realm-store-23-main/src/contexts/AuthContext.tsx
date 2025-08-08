@@ -25,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const refreshUser = async () => {
     const token = localStorage.getItem('token');
@@ -33,19 +34,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       return;
     }
+
+    // Prevent multiple simultaneous refresh attempts
+    if (isRefreshing) return;
+    
     try {
+      setIsRefreshing(true);
       setLoading(true);
       const userData = await api.get('/auth/me');
       setUser(userData);
     } catch (err) {
+      console.error('Auth refresh failed:', err);
       setUser(null);
       localStorage.removeItem('token');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
+    // Check for token immediately
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    
+    // Only attempt to refresh if we have a token
     refreshUser();
   }, []);
 
@@ -55,6 +71,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', res.token);
       setUser(res.user);
+    } catch (err) {
+      console.error('Login failed:', err);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -67,6 +86,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await api.post('/auth/register', data);
       // Auto-login after registration
       await login(data.email, data.password);
+    } catch (err) {
+      console.error('Registration failed:', err);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -74,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('token');
-      setUser(null);
+    setUser(null);
   };
 
   return (

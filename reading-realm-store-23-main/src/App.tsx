@@ -42,7 +42,9 @@ const queryClient = new QueryClient({
 });
 
 const AppRoutes = () => {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
+  
+  // Show minimal loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -53,10 +55,14 @@ const AppRoutes = () => {
       </div>
     );
   }
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Index />} />
+        {/* Redirect to auth if not authenticated, otherwise show homepage */}
+        <Route path="/" element={
+          user ? <Index /> : <Navigate to="/auth" replace />
+        } />
         <Route path="/auth" element={<Auth />} />
         <Route path="/browse" element={<Navigate to="/explore" replace />} />
         <Route path="/explore" element={<ProtectedRoute><EnhancedBrowseBooks /></ProtectedRoute>} />

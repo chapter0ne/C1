@@ -30,20 +30,22 @@ async function request(method: string, url: string, data?: any) {
     const res = await fetch(`${API_BASE}${url}`, opts);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
+      
       // Handle authentication errors gracefully
       if (res.status === 401 || res.status === 403 || err.message?.includes('token')) {
-        if (url !== '/books' && url !== '/books/' && !url.startsWith('/books?')) {
+        if (url !== '/books' && url !== '/books/' && !url.startsWith('/books?') && url !== '/auth/me') {
           redirectToAuth();
         }
         throw new Error('Authentication required');
       }
+      
       throw new Error(err.message || 'API error');
     }
     return res.status === 204 ? null : res.json();
   } catch (error) {
     // If error is authentication, redirect
     if (error instanceof Error && error.message === 'Authentication required') {
-      if (url !== '/books' && url !== '/books/' && !url.startsWith('/books?')) {
+      if (url !== '/books' && url !== '/books/' && !url.startsWith('/books?') && url !== '/auth/me') {
         redirectToAuth();
       }
     }
