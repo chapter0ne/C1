@@ -442,18 +442,29 @@ const EnhancedBookReader = () => {
 
         {/* Reading Area */}
         <main className="flex-1 flex flex-col" ref={readingAreaRef} style={{ minHeight: 0, position: 'relative' }}>
-          {/* Settings Panel */}
-          {showSettings && (
-            <div 
-              className="border-b p-4"
-              style={{ borderColor: currentTheme.border, backgroundColor: currentTheme.accent }}
-            >
-              <div className="flex items-center justify-between mb-4 pt-4">
-                <h3 className="font-semibold text-lg">Reading Settings</h3>
+          {/* Settings Panel - Fixed to top with animations */}
+          <div 
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+              showSettings 
+                ? 'translate-y-0 opacity-100' 
+                : '-translate-y-full opacity-0 pointer-events-none'
+            }`}
+            style={{ 
+              borderColor: currentTheme.border, 
+              backgroundColor: currentTheme.accent,
+              borderBottom: `1px solid ${currentTheme.border}`,
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+            }}
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-lg" style={{ color: currentTheme.text }}>Reading Settings</h3>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSettings(false)}
+                  style={{ color: currentTheme.text }}
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -461,8 +472,8 @@ const EnhancedBookReader = () => {
                         
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Font Size */}
-                        <div>
-                  <label className="block text-sm font-medium mb-2">Font Size</label>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: currentTheme.text }}>Font Size</label>
                   <div className="flex items-center gap-2">
                     <Button 
                       variant="outline" 
@@ -470,38 +481,38 @@ const EnhancedBookReader = () => {
                       onClick={() => handleFontSizeChange(false)}
                       disabled={fontSize <= 12}
                       style={{ 
-                        color: isMidnight ? '#000' : undefined,
-                        backgroundColor: isMidnight ? '#fff' : undefined,
-                        borderColor: isMidnight ? '#fff' : undefined
+                        color: isMidnight ? '#000' : currentTheme.text,
+                        backgroundColor: isMidnight ? '#fff' : currentTheme.background,
+                        borderColor: currentTheme.border
                       }}
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
-                    <span className="w-12 text-center text-sm" style={{ color: isMidnight ? '#fff' : undefined }}>{fontSize}px</span>
+                    <span className="w-12 text-center text-sm" style={{ color: currentTheme.text }}>{fontSize}px</span>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleFontSizeChange(true)}
                       disabled={fontSize >= 32}
                       style={{ 
-                        color: isMidnight ? '#000' : undefined,
-                        backgroundColor: isMidnight ? '#fff' : undefined,
-                        borderColor: isMidnight ? '#fff' : undefined
+                        color: isMidnight ? '#000' : currentTheme.text,
+                        backgroundColor: isMidnight ? '#fff' : currentTheme.background,
+                        borderColor: currentTheme.border
                       }}
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
-                        </div>
+                </div>
 
                 {/* Font Family */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Font</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: currentTheme.text }}>Font</label>
                   <Select value={selectedFont} onValueChange={handleFontChange}>
                     <SelectTrigger className="w-full" style={{ 
-                      color: isMidnight ? '#000' : undefined,
-                      backgroundColor: isMidnight ? '#fff' : undefined,
-                      borderColor: isMidnight ? '#fff' : undefined
+                      color: isMidnight ? '#000' : currentTheme.text,
+                      backgroundColor: isMidnight ? '#fff' : currentTheme.background,
+                      borderColor: currentTheme.border
                     }}>
                       <SelectValue />
                     </SelectTrigger>
@@ -517,12 +528,12 @@ const EnhancedBookReader = () => {
 
                 {/* Theme */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Theme</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: currentTheme.text }}>Theme</label>
                   <Select value={selectedTheme} onValueChange={handleThemeChange}>
                     <SelectTrigger className="w-full" style={{ 
-                      color: isMidnight ? '#000' : undefined,
-                      backgroundColor: isMidnight ? '#fff' : undefined,
-                      borderColor: isMidnight ? '#fff' : undefined
+                      color: isMidnight ? '#000' : currentTheme.text,
+                      backgroundColor: isMidnight ? '#fff' : currentTheme.background,
+                      borderColor: currentTheme.border
                     }}>
                       <SelectValue />
                     </SelectTrigger>
@@ -550,13 +561,18 @@ const EnhancedBookReader = () => {
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Chapter Content */}
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Chapter Content - Add top padding when settings are open */}
           <div 
+            className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 ease-in-out"
+            style={{ 
+              paddingTop: showSettings ? '280px' : '2rem' // Adjust padding based on settings panel height
+            }}
+          >
+            <div 
               className="reading-content prose prose-lg max-w-none"
-            ref={contentRef}
+              ref={contentRef}
               style={{
                 fontSize: `${fontSize}px`,
                 fontFamily: selectedFont,
