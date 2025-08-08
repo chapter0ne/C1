@@ -16,6 +16,11 @@ export const formatText = (text: string): string => {
   // Convert line breaks to <br>
   formattedText = formattedText.replace(/\n/g, '<br>');
 
+  // Remove inline styles that might interfere with reading settings
+  // This ensures the CSS settings can override any embedded styles
+  formattedText = formattedText.replace(/style="[^"]*"/gi, '');
+  formattedText = formattedText.replace(/style='[^']*'/gi, '');
+
   return formattedText;
 };
 

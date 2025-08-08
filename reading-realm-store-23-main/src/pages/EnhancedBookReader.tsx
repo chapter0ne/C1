@@ -69,12 +69,11 @@ const themes = {
 
 // Font options
 const fonts = [
-  { name: 'Georgia', value: 'Georgia, serif' },
-  { name: 'Times New Roman', value: 'Times New Roman, serif' },
-  { name: 'Arial', value: 'Arial, sans-serif' },
-  { name: 'Helvetica', value: 'Helvetica, sans-serif' },
-  { name: 'Verdana', value: 'Verdana, sans-serif' },
-  { name: 'Open Sans', value: 'Open Sans, sans-serif' }
+  { name: 'Classic Serif', value: 'Georgia, serif' },
+  { name: 'Modern Sans', value: 'Arial, sans-serif' },
+  { name: 'Elegant Times', value: 'Times New Roman, serif' },
+  { name: 'Book Antiqua', value: 'Book Antiqua, serif' },
+  { name: 'Century Gothic', value: 'Century Gothic, sans-serif' }
 ];
 
 const EnhancedBookReader = () => {
@@ -84,6 +83,8 @@ const EnhancedBookReader = () => {
   const contentRef = useRef<HTMLDivElement>(null);
   // Add a ref for the scrollable reading area
   const readingAreaRef = useRef<HTMLDivElement>(null);
+  // Add a ref for the settings panel
+  const settingsPanelRef = useRef<HTMLDivElement>(null);
 
   // Enable comprehensive content protection
   const { protectElement, obfuscateText, deobfuscateText } = useContentProtection({
@@ -98,9 +99,18 @@ const EnhancedBookReader = () => {
 
   // Reading state
   const [currentChapter, setCurrentChapter] = useState(0);
-  const [fontSize, setFontSize] = useState(18);
-  const [selectedFont, setSelectedFont] = useState('Georgia, serif');
-  const [selectedTheme, setSelectedTheme] = useState('Morning Delight');
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('reading-font-size');
+    return saved ? parseInt(saved) : 18;
+  });
+  const [selectedFont, setSelectedFont] = useState(() => {
+    const saved = localStorage.getItem('reading-font-family');
+    return saved || 'Georgia, serif';
+  });
+  const [selectedTheme, setSelectedTheme] = useState(() => {
+    const saved = localStorage.getItem('reading-theme');
+    return saved || 'Morning Delight';
+  });
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +159,47 @@ const EnhancedBookReader = () => {
   // Apply theme styles
   const currentTheme = themes[selectedTheme as keyof typeof themes];
   const isMidnight = selectedTheme === 'Midnight Whisper';
+
+  // Handle click outside settings panel
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showSettings && settingsPanelRef.current && !settingsPanelRef.current.contains(event.target as Node)) {
+        // Check if the click is on a Select dropdown or other UI component that should not close the panel
+        const target = event.target as Element;
+        const isSelectDropdown = target.closest('[data-radix-select-content]') || 
+                                target.closest('[data-radix-select-trigger]') ||
+                                target.closest('[role="option"]') ||
+                                target.closest('[data-radix-select-item]') ||
+                                target.closest('[data-radix-portal]') ||
+                                target.closest('[data-radix-popper-content-wrapper]');
+        
+        // Don't close if clicking on Select dropdowns or any Radix UI components
+        if (isSelectDropdown) {
+          return;
+        }
+        
+        // Additional check for any Radix UI portal content
+        const isRadixPortal = target.closest('[data-radix-portal]') || 
+                             target.closest('[data-radix-popper-content-wrapper]') ||
+                             target.closest('[role="listbox"]') ||
+                             target.closest('[role="combobox"]');
+        
+        if (isRadixPortal) {
+          return;
+        }
+        
+        setShowSettings(false);
+      }
+    };
+
+    if (showSettings) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSettings]);
 
   if (authLoading || bookLoading || chaptersLoading || stateLoading) {
     return (
@@ -213,27 +264,40 @@ const EnhancedBookReader = () => {
     if (isMobile) {
       setShowChapters(false);
     }
-    // Scroll to top of reading area
+    // Scroll to top of the page when changing chapters
     setTimeout(() => {
-      if (readingAreaRef.current) {
-        readingAreaRef.current.scrollTo({ top: 0, behavior: 'auto' });
+      // Scroll the window to top for immediate effect
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Also scroll the content area to ensure it's at the top
+      if (contentRef.current) {
+        contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
-    }, 0);
+      
+      // Scroll the main reading area as well
+      if (readingAreaRef.current) {
+        readingAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 100); // Small delay to ensure state update is complete
   };
 
   const handleFontSizeChange = (increment: boolean) => {
     setFontSize(prev => {
       const newSize = increment ? prev + 1 : prev - 1;
-      return Math.max(12, Math.min(32, newSize));
+      const finalSize = Math.max(12, Math.min(32, newSize));
+      localStorage.setItem('reading-font-size', finalSize.toString());
+      return finalSize;
     });
   };
 
   const handleThemeChange = (theme: string) => {
     setSelectedTheme(theme);
+    localStorage.setItem('reading-theme', theme);
   };
 
   const handleFontChange = (font: string) => {
     setSelectedFont(font);
+    localStorage.setItem('reading-font-family', font);
   };
 
     return (
@@ -287,45 +351,48 @@ const EnhancedBookReader = () => {
       {/* Desktop: Keep existing header */}
       {!isMobile && (
         <div 
-          className="border-b sticky top-0 z-40"
-          style={{ borderColor: currentTheme.border }}
+          className="border-b sticky top-0 z-40 backdrop-blur-md"
+          style={{ 
+            borderColor: currentTheme.border,
+            background: isMidnight ? 'rgba(24,24,24,0.7)' : 'rgba(255,255,255,0.5)'
+          }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+            <div className="flex items-center justify-between h-20">
               {/* Left side */}
               <div className="flex items-center gap-4">
                 <Link to="/library" className="text-[#D01E1E] hover:text-[#B01818]">
                   <ArrowLeft className="w-5 h-5" />
                 </Link>
                 <div className="hidden sm:block">
-                  <h1 className="font-semibold text-lg truncate max-w-xs">{book.title}</h1>
-                  <p className="text-sm opacity-70">by {book.author}</p>
+                  <h1 className="font-semibold text-lg truncate max-w-xs" style={{ color: isMidnight ? '#fff' : '#222' }}>{book.title}</h1>
+                  <p className="text-sm opacity-70" style={{ color: isMidnight ? '#eee' : '#555' }}>by {book.author}</p>
                 </div>
-      </div>
+              </div>
 
               {/* Center - Progress */}
               <div className="hidden md:flex items-center gap-4 flex-1 max-w-md mx-8">
                 <div className="flex-1">
                   <div className="flex justify-between text-xs mb-1">
-                    <span>Progress</span>
-                    <span>{Math.round(readingProgress)}%</span>
+                    <span style={{ color: isMidnight ? '#e0e0e0' : '#555' }}>Progress</span>
+                    <span style={{ color: isMidnight ? '#e0e0e0' : '#555' }}>{Math.round(readingProgress)}%</span>
                   </div>
                   <Progress 
                     value={readingProgress} 
                     className="h-2"
                     style={{ 
-                      backgroundColor: isMidnight ? '#222' : currentTheme.accent,
-                      '--progress-background': isMidnight ? '#D01E1E' : '#D01E1E',
-                      border: isMidnight ? '1px solid #444' : undefined
+                      backgroundColor: isMidnight ? '#0f3460' : currentTheme.accent,
+                      '--progress-background': isMidnight ? '#4fc3f7' : '#D01E1E',
+                      border: isMidnight ? '1px solid #0f3460' : undefined
                     } as React.CSSProperties}
                   />
-                  <div className="text-xs opacity-70 mt-1">
+                  <div className="text-xs opacity-70 mt-1" style={{ color: isMidnight ? '#e0e0e0' : '#555' }}>
                     Chapter {currentChapter + 1} of {chapters?.length || 0}
-          </div>
-        </div>
-      </div>
+                  </div>
+                </div>
+              </div>
 
-              {/* Right side - Controls */}
+              {/* Right side */}
               <div className="flex items-center gap-2">
                 {/* Mobile: Chapters button */}
                 {isMobile && (
@@ -344,6 +411,7 @@ const EnhancedBookReader = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSettings(!showSettings)}
+                  style={{ color: isMidnight ? '#fff' : undefined }}
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
@@ -353,6 +421,7 @@ const EnhancedBookReader = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowRatingModal(true)}
+                  style={{ color: isMidnight ? '#fff' : undefined }}
                 >
                   <Star className="w-4 h-4" />
                 </Button>
@@ -364,19 +433,27 @@ const EnhancedBookReader = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex pt-0" style={{ paddingTop: isMobile ? 80 : 0 }}>
-        {/* Chapters Sidebar - Desktop */}
-        {!isMobile && showChapters && chapters && chapters.length > 0 && (
+        {/* Chapters Sidebar - Desktop with Animation */}
+        {!isMobile && chapters && chapters.length > 0 && (
           <aside 
-            className="w-80 border-r overflow-y-auto"
-            style={{ borderColor: currentTheme.border }}
+            className={`w-80 border-r fixed left-0 top-20 h-screen overflow-y-auto z-30 transition-all duration-300 ease-in-out ${
+              showChapters ? 'translate-x-0' : '-translate-x-full'
+            }`}
+            style={{ 
+              borderColor: currentTheme.border, 
+              backgroundColor: currentTheme.background,
+              backdropFilter: 'blur(8px)',
+              boxShadow: '2px 0 8px rgba(0, 0, 0, 0.1)'
+            }}
           >
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Chapters</h3>
+                <h3 className="font-semibold" style={{ color: currentTheme.text }}>Chapters</h3>
               <Button
                 variant="ghost"
                 size="sm"
                   onClick={() => setShowChapters(false)}
+                  style={{ color: currentTheme.text }}
               >
                   <X className="w-4 h-4" />
               </Button>
@@ -440,8 +517,16 @@ const EnhancedBookReader = () => {
           </Sheet>
         )}
 
-        {/* Reading Area */}
-        <main className="flex-1 flex flex-col" ref={readingAreaRef} style={{ minHeight: 0, position: 'relative' }}>
+        {/* Reading Area - Adjust margin when sidebar is open with animation */}
+        <main 
+          className="flex-1 flex flex-col transition-all duration-300 ease-in-out" 
+          ref={readingAreaRef} 
+          style={{ 
+            minHeight: 0, 
+            position: 'relative',
+            marginLeft: (!isMobile && showChapters && chapters && chapters.length > 0) ? '320px' : '0'
+          }}
+        >
           {/* Settings Panel - Fixed to top with animations */}
           <div 
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
@@ -449,6 +534,7 @@ const EnhancedBookReader = () => {
                 ? 'translate-y-0 opacity-100' 
                 : '-translate-y-full opacity-0 pointer-events-none'
             }`}
+            ref={settingsPanelRef}
             style={{ 
               borderColor: currentTheme.border, 
               backgroundColor: currentTheme.accent,
@@ -586,11 +672,16 @@ const EnhancedBookReader = () => {
               </h1>
               <div 
                 className="chapter-content"
-                    dangerouslySetInnerHTML={{ 
+                dangerouslySetInnerHTML={{ 
                   __html: formatText(currentChapterData.content) 
-                    }} 
-                style={{ color: currentTheme.text }}
-                  />
+                }} 
+                style={{ 
+                  color: currentTheme.text,
+                  fontSize: `${fontSize}px !important`,
+                  fontFamily: `${selectedFont} !important`,
+                  lineHeight: '1.7 !important'
+                }}
+              />
             </div>
           </div>
 
