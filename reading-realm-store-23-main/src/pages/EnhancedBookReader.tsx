@@ -310,7 +310,7 @@ const EnhancedBookReader = () => {
     >
       {/* Mobile: Fixed Top Nav + Progress Bar with Glass Blur */}
       {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md" style={{ background: isMidnight ? 'rgba(24,24,24,0.7)' : 'rgba(255,255,255,0.5)', borderBottom: isMidnight ? '1px solid #333' : '1px solid #eee' }}>
+        <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md" style={{ background: isMidnight ? 'rgba(24,24,24,0.2)' : 'rgba(255,255,255,0.2)', borderBottom: isMidnight ? '1px solid rgba(51,51,51,0.2)' : '1px solid rgba(238,238,238,0.2)' }}>
           <div className="flex items-center justify-between h-14 px-4">
             <Link to="/library" className="text-[#D01E1E] hover:text-[#B01818]">
               <ArrowLeft className="w-5 h-5" />
@@ -320,10 +320,40 @@ const EnhancedBookReader = () => {
               <span className="text-xs opacity-70" style={{ color: isMidnight ? '#eee' : '#555' }}>by {book.author}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} style={{ color: isMidnight ? '#fff' : undefined }}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowSettings(!showSettings)} 
+                className="rounded-full transition-all duration-200 hover:scale-105"
+                style={{ 
+                  color: isMidnight ? '#fff' : undefined,
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = isMidnight ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
                 <Settings className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowRatingModal(true)} style={{ color: isMidnight ? '#fff' : undefined }}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowRatingModal(true)} 
+                className="rounded-full transition-all duration-200 hover:scale-105"
+                style={{ 
+                  color: isMidnight ? '#fff' : undefined,
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = isMidnight ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
                 <Star className="w-4 h-4" />
               </Button>
             </div>
@@ -354,7 +384,7 @@ const EnhancedBookReader = () => {
           className="border-b sticky top-0 z-40 backdrop-blur-md"
           style={{ 
             borderColor: currentTheme.border,
-            background: isMidnight ? 'rgba(24,24,24,0.7)' : 'rgba(255,255,255,0.5)'
+            background: isMidnight ? 'rgba(24,24,24,0.2)' : 'rgba(255,255,255,0.2)'
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -411,7 +441,17 @@ const EnhancedBookReader = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSettings(!showSettings)}
-                  style={{ color: isMidnight ? '#fff' : undefined }}
+                  className="rounded-full transition-all duration-200 hover:scale-105"
+                  style={{ 
+                    color: isMidnight ? '#fff' : undefined,
+                    backgroundColor: 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = isMidnight ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
@@ -421,7 +461,17 @@ const EnhancedBookReader = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowRatingModal(true)}
-                  style={{ color: isMidnight ? '#fff' : undefined }}
+                  className="rounded-full transition-all duration-200 hover:scale-105"
+                  style={{ 
+                    color: isMidnight ? '#fff' : undefined,
+                    backgroundColor: 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = isMidnight ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   <Star className="w-4 h-4" />
                 </Button>
@@ -653,7 +703,8 @@ const EnhancedBookReader = () => {
           <div 
             className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 ease-in-out"
             style={{ 
-              paddingTop: showSettings ? '280px' : '2rem' // Adjust padding based on settings panel height
+              paddingTop: showSettings ? '280px' : '2rem',
+              paddingBottom: isMobile && chapters && chapters.length > 1 ? '80px' : '2rem'
             }}
           >
             <div 
@@ -687,13 +738,25 @@ const EnhancedBookReader = () => {
 
           {/* Navigation Footer - Fixed at bottom on mobile */}
           {isMobile && chapters && chapters.length > 1 && (
-            <div className="fixed bottom-0 left-0 right-0 z-50 border-t flex items-center justify-between px-4 py-2" style={{ background: isMidnight ? '#181818' : '#fff', borderColor: isMidnight ? '#333' : '#eee' }}>
+            <div 
+              className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 backdrop-blur-md"
+              style={{ 
+                background: isMidnight ? 'rgba(24,24,24,0.2)' : 'rgba(255,255,255,0.2)',
+                borderTop: isMidnight ? '1px solid rgba(51,51,51,0.2)' : '1px solid rgba(238,238,238,0.2)',
+                boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.03)'
+              }}
+            >
               <Button
                 variant="outline"
                 onClick={() => handleChapterChange(Math.max(0, currentChapter - 1))}
                 disabled={currentChapter <= 0}
                 className="flex items-center gap-2"
-                style={{ color: isMidnight ? '#fff' : undefined, borderColor: isMidnight ? '#444' : undefined, background: isMidnight ? '#222' : undefined }}
+                style={{ 
+                  color: isMidnight ? '#fff' : undefined, 
+                  borderColor: isMidnight ? 'rgba(68,68,68,0.2)' : 'rgba(209,213,219,0.2)', 
+                  background: isMidnight ? 'rgba(34,34,34,0.2)' : 'rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(8px)'
+                }}
               >
                 <ChevronLeft className="w-4 h-4" /> Prev
               </Button>
@@ -705,7 +768,12 @@ const EnhancedBookReader = () => {
                 onClick={() => handleChapterChange(Math.min(chapters.length - 1, currentChapter + 1))}
                 disabled={currentChapter >= chapters.length - 1}
                 className="flex items-center gap-2"
-                style={{ color: isMidnight ? '#fff' : undefined, borderColor: isMidnight ? '#444' : undefined, background: isMidnight ? '#222' : undefined }}
+                style={{ 
+                  color: isMidnight ? '#fff' : undefined, 
+                  borderColor: isMidnight ? 'rgba(68,68,68,0.2)' : 'rgba(209,213,219,0.2)', 
+                  background: isMidnight ? 'rgba(34,34,34,0.2)' : 'rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(8px)'
+                }}
               >
                 Next <ChevronRight className="w-4 h-4" />
               </Button>
@@ -717,7 +785,7 @@ const EnhancedBookReader = () => {
       {/* Add floating/fixed button to reopen chapter panel (desktop) */}
       {!isMobile && !showChapters && (
         <button
-          className="fixed left-0 top-1/3 z-50 bg-[#D01E1E] text-white rounded-r-lg px-3 py-2 shadow-lg hover:bg-[#B01818]"
+          className="fixed left-0 top-1/3 z-50 bg-[#D01E1E] text-white rounded-r-lg px-3 py-2 shadow-lg"
           onClick={() => setShowChapters(true)}
           style={{ minWidth: 40 }}
           aria-label="Show Chapters"
@@ -729,8 +797,13 @@ const EnhancedBookReader = () => {
       {/* Add floating/fixed button to reopen chapter panel (mobile) */}
       {isMobile && chapters && chapters.length > 0 && !showChapters && (
         <button
-          className="fixed right-4 bottom-20 z-50 bg-[#D01E1E] text-white rounded-full w-12 h-12 shadow-lg hover:bg-[#B01818] flex items-center justify-center"
+          className="fixed right-4 bottom-20 z-50 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center backdrop-blur-md"
           onClick={() => setShowChapters(true)}
+          style={{
+            background: isMidnight ? 'rgba(208,30,30,0.8)' : 'rgba(208,30,30,0.8)',
+            border: isMidnight ? '1px solid rgba(208,30,30,0.3)' : '1px solid rgba(208,30,30,0.3)',
+            backdropFilter: 'blur(8px)'
+          }}
           aria-label="Show Chapters"
         >
           <List className="w-5 h-5" />
