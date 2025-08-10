@@ -37,17 +37,17 @@ const ChapterEditor = ({ onSave, onCancel, chapter }: ChapterEditorProps) => {
   };
 
   return (
-    <div className="flex flex-col min-h-[600px]">
-      <div className="mb-4">
+    <div className="flex flex-col h-[85vh] max-h-[900px]">
+      <div className="mb-4 flex-shrink-0">
         <h3 className="text-lg font-semibold">
           {chapter ? "Edit Chapter" : "Add New Chapter"}
         </h3>
       </div>
       
-      <div className="flex-1 flex flex-col">
-        <Card className="flex-1 flex flex-col">
-          <CardHeader className="pb-4">
-            <div className="grid grid-cols-1 gap-4">
+      <div className="flex-1 flex flex-col min-h-0">
+        <Card className="flex-1 flex flex-col min-h-0">
+          <CardHeader className="pb-3 flex-shrink-0">
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <Label htmlFor="chapter-title">Chapter Title</Label>
                 <Input
@@ -61,10 +61,10 @@ const ChapterEditor = ({ onSave, onCancel, chapter }: ChapterEditorProps) => {
             </div>
           </CardHeader>
           
-          <CardContent className="flex-1">
-            <div className="h-full">
-              <Label>Chapter Content</Label>
-              <div className="mt-2 min-h-[400px]">
+          <CardContent className="flex-1 min-h-0 pb-4">
+            <div className="h-full flex flex-col">
+              <Label className="flex-shrink-0 mb-2">Chapter Content</Label>
+              <div className="flex-1 min-h-0">
                 <RichTextEditor
                   content={content}
                   onChange={setContent}
@@ -76,7 +76,7 @@ const ChapterEditor = ({ onSave, onCancel, chapter }: ChapterEditorProps) => {
         </Card>
       </div>
 
-      <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
+      <div className="flex justify-end space-x-2 mt-4 pt-4 border-t flex-shrink-0">
         <Button variant="outline" onClick={handleClose}>
           Cancel
         </Button>

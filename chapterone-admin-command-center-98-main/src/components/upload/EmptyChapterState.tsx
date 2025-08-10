@@ -8,12 +8,12 @@ interface EmptyChapterStateProps {
 
 const EmptyChapterState = ({ onCreateNew }: EmptyChapterStateProps) => {
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
+    <Card className="h-full flex flex-col min-h-0">
+      <CardHeader className="flex-shrink-0">
         <CardTitle>Chapter Editor</CardTitle>
         <p className="text-sm text-gray-600">Select a chapter to view or create a new one</p>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col items-center justify-center text-center">
+      <CardContent className="flex-1 flex flex-col items-center justify-center text-center min-h-0">
         <p className="text-gray-500 mb-4">No chapter selected</p>
         <Button 
           variant="outline"

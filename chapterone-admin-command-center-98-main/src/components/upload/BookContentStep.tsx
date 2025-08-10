@@ -129,9 +129,9 @@ const BookContentStep = ({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[85vh] max-h-[900px]">
       {/* Chapters List - Mobile: full width, Desktop: narrower */}
-      <div className="lg:col-span-4 flex flex-col">
+      <div className="lg:col-span-4 flex flex-col min-h-0">
         <ChapterList
           chapters={chapters}
           selectedChapter={selectedChapter}
@@ -144,7 +144,7 @@ const BookContentStep = ({
       </div>
       
       {/* Chapter Editor - Mobile: full width, Desktop: wider */}
-      <div className="lg:col-span-8">
+      <div className="lg:col-span-8 flex flex-col min-h-0">
         {renderChapterEditor()}
       </div>
 

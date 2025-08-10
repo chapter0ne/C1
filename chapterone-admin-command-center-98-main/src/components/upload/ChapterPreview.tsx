@@ -11,7 +11,7 @@ interface ChapterPreviewProps {
 
 const ChapterPreview = ({ chapter, onEditChapter }: ChapterPreviewProps) => {
   return (
-    <Card className="h-full flex flex-col min-h-0 overflow-hidden">
+    <Card className="h-full flex flex-col min-h-0">
       <CardHeader className="flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="truncate">Chapter Preview: {chapter.title}</CardTitle>
@@ -24,17 +24,12 @@ const ChapterPreview = ({ chapter, onEditChapter }: ChapterPreviewProps) => {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 overflow-hidden p-6">
+      <CardContent className="flex-1 min-h-0 p-6">
         <div 
           className="h-full overflow-y-auto break-words prose prose-sm max-w-none"
           style={{ 
             fontFamily: 'Georgia, serif', 
-            lineHeight: '1.6',
-            maxHeight: '100%'
-          }}
-          onScroll={(e) => {
-            console.log('Chapter preview scroll height:', e.currentTarget.scrollHeight);
-            console.log('Chapter preview client height:', e.currentTarget.clientHeight);
+            lineHeight: '1.6'
           }}
           dangerouslySetInnerHTML={{ __html: chapter.content }}
         />

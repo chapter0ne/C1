@@ -166,8 +166,8 @@ const RichTextEditor = ({ content, onChange, placeholder = "Write your chapter c
   };
 
   return (
-    <div className={`flex flex-col space-y-2 ${className}`}>
-      <div className="flex gap-2 mb-2 flex-wrap border-b pb-2">
+    <div className={`flex flex-col space-y-2 h-full ${className}`}>
+      <div className="flex gap-2 mb-2 flex-wrap border-b pb-2 flex-shrink-0">
         <div className="flex gap-1">
           <Button
             type="button"
@@ -244,7 +244,7 @@ const RichTextEditor = ({ content, onChange, placeholder = "Write your chapter c
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className="min-h-[400px] p-4 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 whitespace-pre-wrap break-words"
+        className="flex-1 min-h-0 p-6 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 whitespace-pre-wrap break-words overflow-y-auto"
         style={{ 
           fontFamily: 'Georgia, serif',
           lineHeight: '1.6',
