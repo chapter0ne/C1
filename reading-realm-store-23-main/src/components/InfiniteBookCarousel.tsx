@@ -29,7 +29,7 @@ const InfiniteBookCarousel = ({
     const handleScroll = () => {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
       const itemWidth = scrollContainer.firstElementChild?.clientWidth || 0;
-      const gap = 12; // gap-3 = 12px
+      const gap = 12; // gap-3 = 12px (increased from 8px)
       const totalItemWidth = itemWidth + gap;
       
       // When we've scrolled past the original items, jump back to the beginning
@@ -59,16 +59,19 @@ const InfiniteBookCarousel = ({
           style={{ scrollBehavior: 'auto' }}
         >
           {tripleBooks.map((book, index) => (
-            <BookCard
-              key={book._id || book.id || index}
-              book={book}
-              showActionButtons={false}
-              onAddToWishlist={onAddToWishlist}
-              onAddToLibrary={onAddToLibrary}
-              onRemoveFromWishlist={onRemoveFromWishlist}
-              onRemoveFromLibrary={onRemoveFromLibrary}
-              {...(getBookState ? getBookState(book) : {})}
-            />
+            <div className="w-28 flex-shrink-0">
+              <BookCard
+                key={book._id || book.id || index}
+                book={book}
+                showActionButtons={false}
+                variant="compact"
+                onAddToWishlist={onAddToWishlist}
+                onAddToLibrary={onAddToLibrary}
+                onRemoveFromWishlist={onRemoveFromWishlist}
+                onRemoveFromLibrary={onRemoveFromLibrary}
+                {...(getBookState ? getBookState(book) : {})}
+              />
+            </div>
           ))}
         </div>
       </div>

@@ -87,32 +87,32 @@ const Search = () => {
   
   // Ensure we have books before filtering
   if (!allBooks || allBooks.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* Desktop Header */}
-        <UniversalHeader currentPage="search" />
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Desktop Header */}
+      <UniversalHeader currentPage="search" />
 
-        {/* Search Section */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-            {/* Search Bar */}
-            <div className="relative mb-6">
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder="Search books, authors, genres..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full border-2 border-gray-200 rounded-xl pl-12 pr-6 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-[#D01E1E] focus:border-[#D01E1E] transition-all duration-200 shadow-sm"
-              />
+      {/* Search Section */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+          {/* Search Bar */}
+          <div className="relative mb-6">
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
+            <input
+              type="text"
+              placeholder="Search books, authors, genres..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-xl pl-12 pr-6 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-[#D01E1E] focus:border-[#D01E1E] transition-all duration-200 shadow-sm"
+            />
+          </div>
 
-            {/* Page Title */}
-            <div className="text-center mb-6">
+          {/* Page Title */}
+          <div className="text-center mb-6">
               <h1 className="text-3xl font-bold text-gray-900 mb-2 hidden md:block">
                 {category ? `${category} Books` : 'Find your favourite books'}
               </h1>
@@ -346,7 +346,7 @@ const Search = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 lg:gap-6">
             {displayBooks.filter((book: any) => book && book._id).map((book: any) => {
               const bookInLibrary = isBookInLibrary(book._id);
               const bookInWishlist = isBookInWishlist(book._id);
@@ -356,6 +356,7 @@ const Search = () => {
                 <BookCard
                   key={book._id}
                   book={book}
+                  variant="compact"
                   showActionButtons={false}
                   showHeart={shouldShowHeart}
                   isInLibrary={bookInLibrary}

@@ -179,7 +179,7 @@ const Wishlist = () => {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6">
+            <div className="space-y-3 pb-6">
               {filteredWishlist.map((item: any) => {
                 // Handle both direct book objects and nested book objects
                 const book = item.book || item;
@@ -197,10 +197,9 @@ const Wishlist = () => {
                 return (
                   <Card key={item._id || item.id} className="hover:shadow-md transition-shadow border border-gray-200">
                     <CardContent className="p-4">
-                      {/* Simple Book Display */}
-                      <div className="text-center mb-4">
+                      <div className="flex gap-4 items-start">
                         {/* Book Cover */}
-                        <div className="w-24 h-32 mx-auto mb-3 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg flex items-center justify-center text-white text-lg font-bold">
+                        <div className="w-20 h-28 flex-shrink-0 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg flex items-center justify-center text-white text-sm font-bold">
                           {book.coverImageUrl ? (
                             <img 
                               src={book.coverImageUrl} 
@@ -212,67 +211,70 @@ const Wishlist = () => {
                           )}
                         </div>
                         
-                        {/* Book Title */}
-                        <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
-                          {book.title || 'Untitled Book'}
-                        </h3>
+                        {/* Book Info */}
+                        <div className="flex-1 min-w-0">
+                          {/* Book Title */}
+                          <h3 className="font-semibold text-gray-900 text-base mb-0.5 md:mb-1 line-clamp-2">
+                            {book.title || 'Untitled Book'}
+                          </h3>
+                          
+                          {/* Author */}
+                          <p className="text-sm text-gray-600 mb-2">
+                            by {book.author || 'Unknown Author'}
+                          </p>
+                          
+                          {/* Price Badge */}
+                          <Badge 
+                            variant={book.isFree ? "default" : "secondary"} 
+                            className="text-xs mb-3"
+                          >
+                            {book.isFree ? "Free" : `₦${book.price?.toLocaleString() || '0'}`}
+                          </Badge>
+                        </div>
                         
-                        {/* Author */}
-                        <p className="text-xs text-gray-600 mb-2">
-                          by {book.author || 'Unknown Author'}
-                        </p>
-                        
-                        {/* Price Badge */}
-                        <Badge 
-                          variant={book.isFree ? "default" : "secondary"} 
-                          className="text-xs mb-3"
-                        >
-                          {book.isFree ? "Free" : `₦${book.price?.toLocaleString() || '0'}`}
-                        </Badge>
-                      </div>
-
-                      {/* Simple Action Buttons */}
-                      <div className="space-y-2">
-                        {/* Primary Action Button */}
-                        {book.isFree && !isInLibrary ? (
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-2 min-w-0">
+                          {/* Primary Action Button */}
+                          {book.isFree && !isInLibrary ? (
+                            <Button
+                              size="sm"
+                              onClick={() => handleAddToLibrary(book._id || book.id)}
+                              className="bg-[#D01E1E] hover:bg-[#B01818] text-white text-xs py-2 px-3 whitespace-nowrap"
+                            >
+                              <BookOpen className="w-3 h-3 mr-1" />
+                              Add to Library
+                            </Button>
+                          ) : !book.isFree ? (
+                            <Button
+                              size="sm"
+                              onClick={() => handleAddToCart(book._id || book.id)}
+                              className="bg-[#D01E1E] hover:bg-[#B01818] text-white text-xs py-2 px-3 whitespace-nowrap"
+                            >
+                              <ShoppingCart className="w-3 h-3 mr-1" />
+                              Add to Cart
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="bg-gray-200 text-gray-500 cursor-not-allowed text-xs py-2 px-3 whitespace-nowrap"
+                            >
+                              <BookOpen className="w-3 h-3 mr-1" />
+                              In Library
+                            </Button>
+                          )}
+                          
+                          {/* Remove Button */}
                           <Button
                             size="sm"
-                            onClick={() => handleAddToLibrary(book._id || book.id)}
-                            className="w-full bg-[#D01E1E] hover:bg-[#B01818] text-white text-xs py-2"
+                            variant="outline"
+                            onClick={() => handleRemoveFromWishlist(book._id || book.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs py-2 px-3 whitespace-nowrap"
                           >
-                            <BookOpen className="w-3 h-3 mr-1" />
-                            Add to Library
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Remove
                           </Button>
-                        ) : !book.isFree ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddToCart(book._id || book.id)}
-                            className="w-full bg-[#D01E1E] hover:bg-[#B01818] text-white text-xs py-2"
-                          >
-                            <ShoppingCart className="w-3 h-3 mr-1" />
-                            Add to Cart
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            disabled
-                            className="w-full bg-gray-200 text-gray-500 cursor-not-allowed text-xs py-2"
-                          >
-                            <BookOpen className="w-3 h-3 mr-1" />
-                            In Library
-                          </Button>
-                        )}
-                        
-                        {/* Remove Button */}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRemoveFromWishlist(book._id || book.id)}
-                          className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs py-1"
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          Remove
-                        </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

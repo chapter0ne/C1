@@ -180,6 +180,7 @@ const EnhancedBrowseBooks = () => {
   }, [categories, allBooks, selectedPrice]);
 
   const uncategorizedBooks = useMemo(() => {
+    // Get all books that appear in predefined categories
     const categorizedBookIds = new Set();
     categorySections.forEach(section => {
       section.books.forEach(book => {

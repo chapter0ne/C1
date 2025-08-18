@@ -178,7 +178,11 @@ const BookCard = ({
   return (
     <div className="block group min-w-0 flex-shrink-0">
       {/* Default/Compact Variant */}
-      <div className={`flex flex-col w-32 sm:w-36 md:w-40 lg:w-44 relative flex-shrink-0`}>
+      <div className={`flex flex-col ${
+        variant === 'compact' 
+          ? 'w-28 sm:w-32 md:w-36 lg:w-40' 
+          : 'w-32 sm:w-36 md:w-40 lg:w-44'
+      } relative flex-shrink-0`}>
         {/* Book Cover - Click to Open Book */}
         <div className="relative mb-2">
           <div 
@@ -209,7 +213,9 @@ const BookCard = ({
             {isInLibrary && onRemoveFromLibrary && (
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onRemoveFromLibrary(book._id); }}
-                className="absolute top-1 right-1 z-20 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-red-700"
+                className={`absolute top-1 right-1 z-20 bg-red-600 text-white rounded-full flex items-center justify-center shadow hover:bg-red-700 ${
+                  variant === 'compact' ? 'w-5 h-5' : 'w-6 h-6'
+                }`}
                 title="Remove from Library"
               >
                 ×
@@ -225,12 +231,12 @@ const BookCard = ({
                 }`}
                 title={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
                 style={{ 
-                  minWidth: '24px', 
-                  minHeight: '24px',
+                  minWidth: variant === 'compact' ? '20px' : '24px', 
+                  minHeight: variant === 'compact' ? '20px' : '24px',
                   cursor: 'pointer'
                 }}
               >
-                <Heart className={`w-3 h-3 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                <Heart className={`${variant === 'compact' ? 'w-2 h-2' : 'w-3 h-3'} ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-white'}`} />
               </button>
             )}
           </div>
@@ -247,17 +253,25 @@ const BookCard = ({
           )}
         </div>
         {/* Book Details */}
-        <div className="space-y-2 pb-4">
+        <div className={`pb-4 ${
+          variant === 'compact' ? 'space-y-1 md:space-y-2' : 'space-y-2'
+        }`}>
           {/* Title - Click to Open Book Details */}
-          <h3 
-            className="font-semibold text-gray-900 text-xs leading-tight line-clamp-2 cursor-pointer hover:text-[#D01E1E] transition-colors px-1"
-            onClick={() => window.location.href = `/book/${book._id}`}
-          >
-            {book.title}
-          </h3>
+          <div className="min-h-[2.5rem] flex flex-col justify-center">
+            <h3 
+              className={`font-semibold text-gray-900 leading-tight line-clamp-2 cursor-pointer hover:text-[#D01E1E] transition-colors px-1 ${
+                variant === 'compact' ? 'text-xs' : 'text-sm'
+              }`}
+              onClick={() => window.location.href = `/book/${book._id}`}
+            >
+              {book.title}
+            </h3>
+          </div>
           {/* Author - Click to Open Book Details */}
           <p 
-            className="text-xs text-gray-600 truncate cursor-pointer hover:text-[#D01E1E] transition-colors px-1"
+            className={`text-gray-600 truncate cursor-pointer hover:text-[#D01E1E] transition-colors px-1 ${
+              variant === 'compact' ? 'text-xs' : 'text-sm'
+            }`}
             onClick={() => window.location.href = `/book/${book._id}`}
           >
             by {book.author}
@@ -265,12 +279,20 @@ const BookCard = ({
           {/* Rating and Price on same line */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1">
-              <Star className="w-2 h-2 text-black fill-black" />
-              <span className="text-xs text-gray-700 font-medium">{typeof book.rating === 'number' ? book.rating.toFixed(1) : '0.0'}</span>
+              <Star className={`${variant === 'compact' ? 'w-2 h-2' : 'w-3 h-3'} text-black fill-black`} />
+              <span className={`text-gray-700 font-medium ${
+                variant === 'compact' ? 'text-xs' : 'text-sm'
+              }`}>
+                {typeof book.rating === 'number' ? book.rating.toFixed(1) : '0.0'}
+              </span>
             </div>
-            <p className={`text-xs font-semibold ${book.isFree ? "text-green-600" : "text-gray-900"}`}>
-              {book.isFree ? "Free" : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 0}`}
-            </p>
+            <div className="text-right">
+              <span className={`font-bold ${
+                variant === 'compact' ? 'text-xs' : 'text-sm'
+              } ${book.isFree ? 'text-green-600' : 'text-[#D01E1E]'}`}>
+                {book.isFree ? 'Free' : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 0}`}
+              </span>
+            </div>
           </div>
           {/* Action Buttons */}
           {showActionButtons && (
