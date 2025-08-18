@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -10,21 +10,37 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [redirectTimeout, setRedirectTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // If not loading and no user or user is not admin, redirect to auth
     if (!loading && (!user || !user.roles || !user.roles.includes('admin'))) {
+      // Set a timeout to prevent infinite loading
+      const timeout = setTimeout(() => {
+        console.warn('Redirect timeout reached, forcing navigation to auth');
+        navigate('/auth', { replace: true });
+      }, 5000); // 5 second timeout
+      
+      setRedirectTimeout(timeout);
       navigate('/auth', { replace: true });
     }
-  }, [user, loading, navigate]);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout);
+      }
+    };
+  }, [user, loading, navigate, redirectTimeout]);
 
   // Show loading state while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chapterRed-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
           <div className="text-lg text-gray-600">Loading...</div>
+          <div className="text-sm text-gray-500 mt-2">Checking authentication...</div>
         </div>
       </div>
     );
@@ -36,6 +52,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="text-lg text-gray-600">Redirecting to login...</div>
+          <div className="text-sm text-gray-500 mt-2">Please wait...</div>
         </div>
       </div>
     );

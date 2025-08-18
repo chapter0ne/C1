@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useBookDetails } from "@/hooks/books/useBookDetails";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface BookDetailsModalProps {
   isOpen: boolean;
@@ -12,24 +13,82 @@ interface BookDetailsModalProps {
 }
 
 const BookDetailsModal = ({ isOpen, onClose, bookId }: BookDetailsModalProps) => {
-  const { data: book, isLoading } = useBookDetails(bookId);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { data: book, isLoading, error } = useBookDetails(bookId);
 
+  // Handle modal state changes
+  useEffect(() => {
+    setIsModalOpen(isOpen);
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+    onClose();
+  };
+
+  // Show loading state
   if (isLoading) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isModalOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-2xl">
           <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+              <p className="text-gray-600">Loading book details...</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
     );
   }
 
-  if (!book) return null;
+  // Show error state
+  if (error) {
+    return (
+      <Dialog open={isModalOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-2xl">
+          <div className="flex items-center justify-center p-8">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+              <p className="text-red-600 mb-2">Failed to load book details</p>
+              <p className="text-gray-600 text-sm">{error.message}</p>
+              <button 
+                onClick={handleClose}
+                className="mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show no book state
+  if (!book) {
+    return (
+      <Dialog open={isModalOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-2xl">
+          <div className="flex items-center justify-center p-8">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+              <p className="text-gray-600">Book not found</p>
+              <button 
+                onClick={handleClose}
+                className="mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">{book.title}</DialogTitle>

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Upload as UploadIcon, X, Plus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 interface FormData {
   title: string;
@@ -23,6 +23,7 @@ interface FormData {
 interface BookDetailsStepProps {
   formData: FormData;
   selectedTags: string[];
+  coverImageUrl?: string | null; // Add this prop for existing cover images
   onInputChange: (field: string, value: string | boolean | File) => void;
   onTagToggle: (tag: string) => void;
   isValid: boolean;
@@ -31,6 +32,7 @@ interface BookDetailsStepProps {
 const BookDetailsStep = ({
   formData,
   selectedTags,
+  coverImageUrl, // Add this prop
   onInputChange,
   onTagToggle,
   isValid
@@ -39,6 +41,13 @@ const BookDetailsStep = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [customTag, setCustomTag] = useState("");
   
+  // Initialize previewUrl with existing cover image if available
+  useEffect(() => {
+    if (coverImageUrl) {
+      setPreviewUrl(coverImageUrl);
+    }
+  }, [coverImageUrl]);
+
   const availableTags = [
     "Programming", "Horror", "Art", "Business", "Technology", "Fiction", 
     "Non-Fiction", "Self-Help", "Mystery", "Romance", "Science", 
@@ -89,6 +98,9 @@ const BookDetailsStep = ({
         <CardHeader>
           <CardTitle>Book Cover</CardTitle>
           <p className="text-sm text-gray-600">Upload your book cover image</p>
+          {!coverImageUrl && !formData.coverImage && (
+            <p className="text-xs text-red-500">Required</p>
+          )}
         </CardHeader>
         <CardContent>
           <div onClick={handleUploadClick} className="border-2 border-dashed border-gray-300 p-8 text-center hover:border-gray-400 transition-colors cursor-pointer rounded-2xl bg-neutral-50 relative py-[144px]">
@@ -101,11 +113,15 @@ const BookDetailsStep = ({
                 }} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
                   <X className="h-4 w-4" />
                 </button>
+                <div className="mt-2 text-sm text-gray-600">
+                  {coverImageUrl && !formData.coverImage ? 'Existing cover image' : 'New cover image'}
+                </div>
               </div>
             ) : (
               <div className="py-16">
                 <UploadIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <p className="text-lg font-medium mb-2 focus:outline-2">Upload cover image</p>
+                <p className="text-xs text-red-500 mb-2">Required</p>
                 <p className="text-sm text-gray-500 mb-4">Recommended size: 1400 x 2100 pixels (2:3 ratio)</p>
                 <Button variant="outline" className="border-0">Select Cover Image</Button>
               </div>

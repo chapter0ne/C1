@@ -51,18 +51,38 @@ const Books = () => {
   const { data: libraryCounts = {} } = useQuery({
     queryKey: ['library-counts'],
     queryFn: async () => {
-      const counts: Record<string, number> = {};
-      for (const book of books) {
-        try {
-          const response = await api.get(`/user-library/book/${book._id}/count`);
-          counts[book._id] = response.count || 0;
-        } catch (error) {
-          counts[book._id] = 0;
-        }
+      try {
+        const counts: Record<string, number> = {};
+        
+        // Fetch all counts in parallel for better performance
+        const countPromises = books.map(async (book) => {
+          try {
+            const response = await api.get(`/user-library/book/${book._id}/count`);
+            return { bookId: book._id, count: response.count || 0 };
+          } catch (error) {
+            console.warn(`Failed to fetch library count for book ${book._id}:`, error);
+            return { bookId: book._id, count: 0 };
+          }
+        });
+        
+        const results = await Promise.allSettled(countPromises);
+        
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            counts[result.value.bookId] = result.value.count;
+          }
+        });
+        
+        return counts;
+      } catch (error) {
+        console.error('Error fetching library counts:', error);
+        return {};
       }
-      return counts;
     },
-    enabled: books.length > 0
+    enabled: books.length > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 1,
+    retryDelay: 2000
   });
 
   const filteredBooks = books.filter(book => {

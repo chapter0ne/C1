@@ -20,7 +20,7 @@ const EnhancedBookDetails = () => {
   return (
     <div>
       <h1>{book.title}</h1>
-      <p>by {book.author}</p>
+      <p className="truncate">by {book.author}</p>
       <p>{book.description}</p>
       {/* Render other book details as needed */}
       <button onClick={() => setShowRatingModal(true)} className="bg-[#D01E1E] hover:bg-[#B01818] text-white px-4 py-2 rounded mt-4">Rate & Review</button>

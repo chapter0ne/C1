@@ -1,14 +1,27 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useCreateBook } from "@/hooks/useBooks";
+import { useUpdateBook } from "@/hooks/books/useCreateBook";
 import { uploadBookCover } from "@/utils/storage";
 
 export const useUploadActions = () => {
   const navigate = useNavigate();
+  const { bookId } = useParams<{ bookId?: string }>();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const createBookMutation = useCreateBook();
+  const updateBookMutation = useUpdateBook();
+
+  const isEditMode = !!bookId;
+
+  // Add callback for form clearing - REMOVED as it was causing infinite re-renders
+  // const [onFormClear, setOnFormClear] = useState<(() => void) | null>(null);
+
+  // const setFormClearCallback = useCallback((callback: () => void) => {
+  //   setOnFormClear(() => callback);
+  // }, []);
 
   const handleNext = (isStep1Valid: boolean, isStep2Valid: boolean) => {
     if (currentStep === 1 && !isStep1Valid) {
@@ -31,13 +44,20 @@ export const useUploadActions = () => {
   };
 
   const handleSaveDraft = async (formData: any, chapters: any[], selectedTags: string[]) => {
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      toast.error('Please wait, submission in progress...');
+      return;
+    }
+
+    setIsSubmitting(true)
     try {
       let coverImageUrl = null;
       if (formData.coverImage) {
         coverImageUrl = await uploadBookCover(formData.coverImage);
       }
 
-      await createBookMutation.mutateAsync({
+      const bookData = {
         title: formData.title,
         author: formData.author,
         description: formData.description,
@@ -52,16 +72,36 @@ export const useUploadActions = () => {
           title: chapter.title,
           content: chapter.content
         }))
-      });
+      };
 
-      toast.success('Book saved as draft!');
+      if (isEditMode) {
+        // Update existing book
+        await updateBookMutation.mutateAsync({ id: bookId, ...bookData });
+        toast.success('Book updated as draft!');
+      } else {
+        // Create new book
+        await createBookMutation.mutateAsync(bookData);
+        toast.success('Book saved as draft!');
+      }
+
+      // Navigate to books page after successful save
+      navigate("/books");
     } catch (error) {
       console.error('Error saving draft:', error);
-      toast.error('Failed to save draft');
+      toast.error(isEditMode ? 'Failed to update draft' : 'Failed to save draft');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handlePublish = async (formData: any, chapters: any[], selectedTags: string[]) => {
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      toast.error('Please wait, submission in progress...');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       // Validation for publishing
       if (!formData.isFree && (!formData.price || Number(formData.price) <= 0)) {
@@ -74,7 +114,7 @@ export const useUploadActions = () => {
         coverImageUrl = await uploadBookCover(formData.coverImage);
       }
 
-      await createBookMutation.mutateAsync({
+      const bookData = {
         title: formData.title,
         author: formData.author,
         description: formData.description,
@@ -89,13 +129,25 @@ export const useUploadActions = () => {
           title: chapter.title,
           content: chapter.content
         }))
-      });
+      };
 
-      toast.success('Book published successfully!');
+      if (isEditMode) {
+        // Update existing book
+        await updateBookMutation.mutateAsync({ id: bookId, ...bookData });
+        toast.success('Book updated and published successfully!');
+      } else {
+        // Create new book
+        await createBookMutation.mutateAsync(bookData);
+        toast.success('Book published successfully!');
+      }
+
+      // Navigate to books page after successful publish
       navigate("/books");
     } catch (error) {
       console.error('Error publishing book:', error);
-      toast.error('Failed to publish book');
+      toast.error(isEditMode ? 'Failed to update and publish book' : 'Failed to publish book');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -116,6 +168,7 @@ export const useUploadActions = () => {
     handleSaveDraft,
     handlePublish,
     handleStepNavigation,
-    isLoading: createBookMutation.isPending
+    isLoading: createBookMutation.isPending || updateBookMutation.isPending || isSubmitting,
+    isEditMode,
   };
 };

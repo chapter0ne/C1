@@ -9,15 +9,19 @@ exports.addToWishlist = async (req, res) => {
     const userId = req.user.userId; // Changed from req.user.id to req.user.userId
     const { notes } = req.body;
 
+    console.log('addToWishlist debug:', { bookId, userId, user: req.user });
+
     // Check if book exists
     const book = await Book.findById(bookId);
     if (!book) {
+      console.log('Book not found:', bookId);
       return res.status(404).json({ message: 'Book not found' });
     }
 
     // Check if already in wishlist
     const existingWishlistItem = await Wishlist.findOne({ user: userId, book: bookId });
     if (existingWishlistItem) {
+      console.log('Book already in wishlist:', { bookId, userId });
       return res.status(400).json({ message: 'Book is already in your wishlist' });
     }
 
@@ -30,8 +34,10 @@ exports.addToWishlist = async (req, res) => {
     await wishlistItem.save();
     await wishlistItem.populate('book', 'title author coverImageUrl price isFree');
 
+    console.log('Wishlist item added:', wishlistItem);
     res.status(201).json(wishlistItem);
   } catch (error) {
+    console.error('addToWishlist error:', error);
     res.status(500).json({ message: 'Error adding to wishlist', error: error.message });
   }
 };
@@ -42,14 +48,19 @@ exports.removeFromWishlist = async (req, res) => {
     const { bookId } = req.params;
     const userId = req.user.userId; // Changed from req.user.id to req.user.userId
 
+    console.log('removeFromWishlist debug:', { bookId, userId, user: req.user });
+
     const wishlistItem = await Wishlist.findOneAndDelete({ user: userId, book: bookId });
     
     if (!wishlistItem) {
+      console.log('Wishlist item not found:', { bookId, userId });
       return res.status(404).json({ message: 'Book not found in wishlist' });
     }
 
+    console.log('Wishlist item removed:', wishlistItem);
     res.json({ message: 'Book removed from wishlist' });
   } catch (error) {
+    console.error('removeFromWishlist error:', error);
     res.status(500).json({ message: 'Error removing from wishlist', error: error.message });
   }
 };
@@ -61,6 +72,8 @@ exports.getWishlist = async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const skip = (page - 1) * limit;
 
+    console.log('getWishlist debug:', { userId, user: req.user });
+
     const wishlistItems = await Wishlist.find({ user: userId })
       .populate('book', 'title author coverImageUrl price isFree description genre')
       .sort({ addedAt: -1 })
@@ -69,6 +82,13 @@ exports.getWishlist = async (req, res) => {
 
     const total = await Wishlist.countDocuments({ user: userId });
 
+    console.log('getWishlist result:', { 
+      userId, 
+      total, 
+      wishlistItemsCount: wishlistItems.length,
+      firstItem: wishlistItems[0] 
+    });
+
     res.json({
       wishlist: wishlistItems,
       totalPages: Math.ceil(total / limit),
@@ -76,6 +96,7 @@ exports.getWishlist = async (req, res) => {
       total
     });
   } catch (error) {
+    console.error('getWishlist error:', error);
     res.status(500).json({ message: 'Error fetching wishlist', error: error.message });
   }
 };

@@ -65,6 +65,35 @@ export const useUploadForm = () => {
   };
 
   const setInitialData = (book: any, chaptersData: any[]) => {
+    // Handle cover image - preserve existing image URL
+    const existingCoverUrl = book.coverImageUrl || book.cover_image_url || book.coverImage || book.cover_image;
+    
+    // Try to find tags in multiple possible fields
+    let tags = book.tags || book.genres || book.categories || [];
+    
+    // Handle single genre field (backend stores as single string)
+    if (!tags || tags.length === 0) {
+      if (book.genre && typeof book.genre === 'string') {
+        tags = [book.genre];
+      }
+    }
+    
+    // If tags is a string, split it into an array
+    if (typeof tags === 'string') {
+      tags = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+    }
+    
+    // Ensure tags is an array
+    if (!Array.isArray(tags)) {
+      tags = [];
+    }
+    
+    // Ensure chapters is an array
+    let chapters = chaptersData || [];
+    if (!Array.isArray(chapters)) {
+      chapters = [];
+    }
+    
     setFormData({
       title: book.title || '',
       author: book.author || '',
@@ -73,14 +102,34 @@ export const useUploadForm = () => {
       isbn: book.isbn || '',
       price: book.price ? String(book.price) : '',
       isFree: book.isFree ?? book.is_free ?? false,
-      coverImage: undefined // You may want to handle cover image differently
+      coverImage: undefined // Keep as undefined for new file uploads
     });
-    setSelectedTags(book.tags || []);
-    setChapters(chaptersData || []);
-    // Optionally set coverImageUrl if you want to show the existing cover
-    if (book.coverImageUrl || book.cover_image_url) {
-      setCoverImageUrl(book.coverImageUrl || book.cover_image_url);
+    
+    setSelectedTags(tags);
+    setChapters(chapters);
+    
+    // Set cover image URL to show existing image
+    if (existingCoverUrl) {
+      setCoverImageUrl(existingCoverUrl);
+    } else {
+      setCoverImageUrl(null);
     }
+  };
+
+  const clearFormData = () => {
+    setFormData({
+      title: "",
+      author: "",
+      description: "",
+      genre: "",
+      isbn: "",
+      price: "",
+      isFree: false,
+      coverImage: undefined
+    });
+    setSelectedTags([]);
+    setChapters([]);
+    setCoverImageUrl(null);
   };
 
   return {
@@ -92,6 +141,10 @@ export const useUploadForm = () => {
     handleInputChange,
     handleChapterSave,
     handleChapterDelete,
-    setInitialData
+    setInitialData,
+    clearFormData,
+    setSelectedTags,
+    setChapters,
+    setCoverImageUrl
   };
 };

@@ -8,8 +8,8 @@ const Library = () => {
   const { user } = useAuth();
   const userId = user?.id || '';
   const { data: books = [], isLoading: booksLoading, error: booksError } = useBooks();
-  const { wishlist = [], isLoading: wishlistLoading, error: wishlistError } = useWishlist(userId);
-  const { cart = [], isLoading: cartLoading, error: cartError } = useCart(userId);
+  const { wishlist = [], isLoading: wishlistLoading } = useWishlist(userId);
+  const { cart = [], isLoading: cartLoading } = useCart(userId);
 
   // Ensure wishlist is always an array
   const safeWishlist = Array.isArray(wishlist) ? wishlist : [];
@@ -17,7 +17,7 @@ const Library = () => {
   if (booksLoading || wishlistLoading || cartLoading) {
     return <div>Loading your library...</div>;
   }
-  if (booksError || wishlistError || cartError) {
+  if (booksError) {
     return <div>Error loading library data.</div>;
   }
 
@@ -27,7 +27,7 @@ const Library = () => {
       <h2>Books</h2>
       <ul>
         {books.map((book: any) => (
-          <li key={book._id}>{book.title} by {book.author}</li>
+          <li key={book._id} className="truncate">{book.title} by {book.author}</li>
         ))}
       </ul>
       <h2>Wishlist</h2>

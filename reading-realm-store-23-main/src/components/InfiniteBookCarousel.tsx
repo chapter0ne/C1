@@ -6,14 +6,18 @@ import { Book } from '@/types/book';
 interface InfiniteBookCarouselProps {
   books: Book[];
   onAddToWishlist?: (bookId: string) => void;
+  onRemoveFromWishlist?: (bookId: string) => void;
   onAddToLibrary?: (bookId: string) => void;
+  onRemoveFromLibrary?: (bookId: string) => void;
   getBookState?: (book: Book) => { isInLibrary: boolean; isInWishlist: boolean; isInCart: boolean };
 }
 
 const InfiniteBookCarousel = ({ 
   books, 
   onAddToWishlist, 
+  onRemoveFromWishlist,
   onAddToLibrary,
+  onRemoveFromLibrary,
   getBookState
 }: InfiniteBookCarouselProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -46,22 +50,46 @@ const InfiniteBookCarousel = ({
   const tripleBooks = [...books, ...books, ...books];
 
   return (
-    <div 
-      ref={scrollRef}
-      className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide"
-      style={{ scrollBehavior: 'auto' }}
-    >
-      {tripleBooks.map((book, index) => (
-        <BookCard
-          key={book._id || book.id || index}
-          book={book}
-          showActionButtons={true}
-          onAddToWishlist={onAddToWishlist}
-          onAddToLibrary={onAddToLibrary}
-          {...(getBookState ? getBookState(book) : {})}
-        />
-      ))}
-    </div>
+    <>
+      {/* Mobile: Infinite horizontal scroll */}
+      <div className="md:hidden">
+        <div 
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide"
+          style={{ scrollBehavior: 'auto' }}
+        >
+          {tripleBooks.map((book, index) => (
+            <BookCard
+              key={book._id || book.id || index}
+              book={book}
+              showActionButtons={false}
+              onAddToWishlist={onAddToWishlist}
+              onAddToLibrary={onAddToLibrary}
+              onRemoveFromWishlist={onRemoveFromWishlist}
+              onRemoveFromLibrary={onRemoveFromLibrary}
+              {...(getBookState ? getBookState(book) : {})}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: Flexbox layout that wraps naturally */}
+      <div className="hidden md:flex md:flex-wrap gap-4 lg:gap-6">
+        {books.map((book, index) => (
+          <div key={`${book._id || book.id}-${index}`}>
+            <BookCard
+              book={book}
+              showActionButtons={false}
+              onAddToWishlist={onAddToWishlist}
+              onAddToLibrary={onAddToLibrary}
+              onRemoveFromWishlist={onRemoveFromWishlist}
+              onRemoveFromLibrary={onRemoveFromLibrary}
+              {...(getBookState ? getBookState(book) : {})}
+            />
+          </div>
+        ))}
+      </div>
+    </>
   );
 };
 

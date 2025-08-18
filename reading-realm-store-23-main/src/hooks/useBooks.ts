@@ -3,9 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/utils/api';
 
 export const useBooks = () => {
+  console.log('useBooks hook called');
   return useQuery({
     queryKey: ['books'],
-    queryFn: async () => await api.get('/books'),
+    queryFn: async () => {
+      console.log('useBooks: Making API call to /books');
+      const result = await api.get('/books');
+      console.log('useBooks: API call result:', result ? `${Array.isArray(result) ? result.length : 'non-array'} items` : 'null/undefined');
+      return result;
+    }
   });
 };
 

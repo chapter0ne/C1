@@ -102,7 +102,7 @@ const CurateList = () => {
                 checked={selectedBooks.includes(book._id)}
                 onChange={e => handleBookSelect(book._id, e.target.checked)}
               />
-              {book.title} by {book.author}
+              <span className="truncate">{book.title} by {book.author}</span>
             </label>
           </li>
         ))}

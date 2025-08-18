@@ -5,7 +5,7 @@ import { api } from '@/utils/api';
 export const useWishlist = (userId: string) => {
   const queryClient = useQueryClient();
 
-  const { data: wishlistResponse, isLoading, error } = useQuery({
+  const { data: wishlistResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['wishlist', userId],
     queryFn: async () => {
       console.log('Fetching wishlist for userId:', userId);
@@ -16,7 +16,8 @@ export const useWishlist = (userId: string) => {
     enabled: !!userId,
     // Return empty object with wishlist array if no userId
     initialData: { wishlist: [] },
-    retry: 1
+    retry: 1,
+    staleTime: 0 // Always fetch fresh data
   });
 
   // Log errors if they occur
@@ -33,25 +34,43 @@ export const useWishlist = (userId: string) => {
     wishlistResponse, 
     wishlist, 
     isLoading, 
-    error 
+    error,
+    wishlistLength: wishlist.length,
+    firstItem: wishlist[0]
   });
 
   const addToWishlist = useMutation({
-    mutationFn: async ({ bookId, notes }: { bookId: string; notes?: string }) => {
-      return await api.post(`/wishlist/books/${bookId}`, { notes });
+    mutationFn: async ({ bookId }: { bookId: string }) => {
+      console.log('Adding to wishlist:', { bookId });
+      const response = await api.post(`/wishlist/books/${bookId}`);
+      console.log('Add to wishlist response:', response);
+      return response;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Add to wishlist success, invalidating queries');
+      console.log('Added wishlist item:', data);
       queryClient.invalidateQueries({ queryKey: ['wishlist', userId] });
     },
+    onError: (error) => {
+      console.error('Add to wishlist error:', error);
+    }
   });
 
   const removeFromWishlist = useMutation({
     mutationFn: async (bookId: string) => {
-      return await api.del(`/wishlist/books/${bookId}`);
+      console.log('Removing from wishlist:', bookId);
+      const response = await api.del(`/wishlist/books/${bookId}`);
+      console.log('Remove from wishlist response:', response);
+      return response;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Remove from wishlist success, invalidating queries');
+      console.log('Removed wishlist item:', data);
       queryClient.invalidateQueries({ queryKey: ['wishlist', userId] });
     },
+    onError: (error) => {
+      console.error('Remove from wishlist error:', error);
+    }
   });
 
   const updateWishlistNotes = useMutation({
@@ -78,6 +97,7 @@ export const useWishlist = (userId: string) => {
     addToWishlist, 
     removeFromWishlist, 
     updateWishlistNotes,
-    checkWishlistStatus
+    checkWishlistStatus,
+    refetch
   };
 };

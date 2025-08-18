@@ -9,45 +9,39 @@ export const useBookDetails = (bookId: string) => {
     queryFn: async () => {
       if (!bookId) throw new Error('No bookId provided');
       
-      // Fetch book details from backend
-      const book = await api.get(`/books/${bookId}`);
-      
-      // Fetch chapters for the book
-      let chapters = [];
       try {
-        chapters = await api.get(`/chapters?bookId=${bookId}`);
-      } catch (e) {
-        console.log('No chapters found for book:', bookId);
-        chapters = [];
+        // Fetch all data in parallel for better performance
+        const [book, chaptersResponse, purchaseResponse, libraryResponse] = await Promise.allSettled([
+          api.get(`/books/${bookId}`),
+          api.get(`/chapters?bookId=${bookId}`),
+          api.get(`/purchases/book/${bookId}/count`),
+          api.get(`/user-library/book/${bookId}/count`)
+        ]);
+        
+        // Extract successful responses
+        const bookData = book.status === 'fulfilled' ? book.value : null;
+        const chapters = chaptersResponse.status === 'fulfilled' ? chaptersResponse.value : [];
+        const purchase_count = purchaseResponse.status === 'fulfilled' ? purchaseResponse.value?.count || 0 : 0;
+        const library_count = libraryResponse.status === 'fulfilled' ? libraryResponse.value?.count || 0 : 0;
+        
+        if (!bookData) {
+          throw new Error('Failed to fetch book data');
+        }
+        
+        return {
+          ...bookData,
+          chapters: chapters || [],
+          purchase_count,
+          library_count
+        } as BookWithChapters;
+      } catch (error) {
+        console.error('Error fetching book details:', error);
+        throw error;
       }
-      
-      // Fetch purchase count for the book (admin only)
-      let purchase_count = 0;
-      try {
-        const purchaseData = await api.get(`/purchases/book/${bookId}/count`);
-        purchase_count = purchaseData.count || 0;
-      } catch (e) {
-        console.log('No purchase data found for book:', bookId);
-        purchase_count = 0;
-      }
-      
-      // Fetch library count for the book (admin only)
-      let library_count = 0;
-      try {
-        const libraryData = await api.get(`/user-library/book/${bookId}/count`);
-        library_count = libraryData.count || 0;
-      } catch (e) {
-        console.log('No library data found for book:', bookId);
-        library_count = 0;
-      }
-      
-      return {
-        ...book,
-        chapters: chapters || [],
-        purchase_count,
-        library_count
-      } as BookWithChapters;
     },
-    enabled: !!bookId
+    enabled: !!bookId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    retryDelay: 1000
   });
 };

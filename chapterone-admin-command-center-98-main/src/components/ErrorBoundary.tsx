@@ -24,10 +24,43 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    
+    // Log additional error context
+    console.error('Error stack:', error.stack);
+    console.error('Component stack:', errorInfo.componentStack);
+    
+    // Check if it's a network/API error
+    if (error.message.includes('Failed to fetch') || 
+        error.message.includes('Network') ||
+        error.message.includes('timeout')) {
+      console.error('Network/API error detected - backend might be unavailable');
+    }
+    
+    // Check if it's an authentication error
+    if (error.message.includes('401') || 
+        error.message.includes('403') ||
+        error.message.includes('Authentication')) {
+      console.error('Authentication error detected - clearing auth state');
+      localStorage.removeItem('token');
+    }
   }
 
   private handleRetry = () => {
     this.setState({ hasError: false, error: undefined });
+    
+    // Clear any stale data that might have caused the error
+    if (typeof window !== 'undefined') {
+      // Clear localStorage if it's an auth error
+      if (this.state.error?.message.includes('Authentication')) {
+        localStorage.removeItem('token');
+      }
+      
+      // Force a page refresh for network errors
+      if (this.state.error?.message.includes('Network') || 
+          this.state.error?.message.includes('Failed to fetch')) {
+        window.location.reload();
+      }
+    }
   };
 
   public render() {

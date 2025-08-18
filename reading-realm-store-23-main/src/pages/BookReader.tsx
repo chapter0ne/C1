@@ -44,7 +44,7 @@ const BookReader = () => {
   return (
     <div>
       <h1>{book.title}</h1>
-      <h2>by {book.author}</h2>
+      <h2 className="truncate">by {book.author}</h2>
       <div>
         {chapters && chapters.length > 0 ? (
           <ul>

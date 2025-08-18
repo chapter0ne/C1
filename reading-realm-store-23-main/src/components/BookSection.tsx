@@ -26,16 +26,17 @@ const BookSection = ({
       <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 px-4 md:px-0">{title}</h2>
       {/* Mobile/Tablet: Horizontal scroll, Desktop: Grid */}
       <div className="md:hidden">
-        <div className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide scroll-smooth snap-x snap-mandatory">
           {books.map((book, index) => (
-            <BookCard
-              key={book._id || book.id || index}
-              book={book}
-              showAddToLibrary={showAddToLibrary}
-              onAddToWishlist={onAddToWishlist}
-              onAddToLibrary={onAddToLibrary}
-              {...(getBookState ? getBookState(book) : {})}
-            />
+            <div key={book._id || book.id || index} className="flex-shrink-0 snap-start">
+              <BookCard
+                book={book}
+                showAddToLibrary={showAddToLibrary}
+                onAddToWishlist={onAddToWishlist}
+                onAddToLibrary={onAddToLibrary}
+                {...(getBookState ? getBookState(book) : {})}
+              />
+            </div>
           ))}
         </div>
       </div>

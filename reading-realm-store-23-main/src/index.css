@@ -255,6 +255,63 @@
     display: none;
   }
   
+  /* Enhanced mobile horizontal scrolling */
+  .scroll-smooth {
+    /* Removed to prevent conflicts with infinite scroll */
+  }
+  
+  .snap-x {
+    scroll-snap-type: x mandatory;
+  }
+  
+  .snap-start {
+    scroll-snap-align: start;
+  }
+  
+  .snap-mandatory {
+    scroll-snap-type: x mandatory;
+  }
+  
+  /* Ensure proper touch scrolling on mobile */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Additional mobile touch scrolling fixes */
+  .flex-shrink-0 {
+    flex-shrink: 0;
+  }
+  
+  /* Prevent scroll chaining and improve performance */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Prevent scroll position jumping */
+  .flex-shrink-0 {
+    flex-shrink: 0;
+    min-width: 0;
+  }
+  
+  /* Ensure proper snap behavior without glitches */
+  .snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+  }
+  
+  .snap-start {
+    scroll-snap-align: start;
+    -webkit-scroll-snap-align: start;
+  }
+  
   .line-clamp-1 {
     overflow: hidden;
     display: -webkit-box;
@@ -307,6 +364,37 @@
       transform: translate(-50%, -50%);
       font-size: 24px;
       color: red;
+    }
+  }
+
+  /* Ultra-smooth scrolling optimizations */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior-x: contain;
+    will-change: scroll-position;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Hardware acceleration for smooth scrolling */
+  .flex-shrink-0 {
+    flex-shrink: 0;
+    min-width: 0;
+    transform: translateZ(0); /* Force hardware acceleration */
+    backface-visibility: hidden;
+  }
+  
+  /* Optimize for mobile touch scrolling */
+  @media (max-width: 768px) {
+    .overflow-x-auto {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: auto;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
     }
   }
 }

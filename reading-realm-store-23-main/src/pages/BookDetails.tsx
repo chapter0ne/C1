@@ -4,7 +4,7 @@ import { useBookDetails, useBooks } from '@/hooks/useBooks';
 import { useReviews } from '@/hooks/useReviews';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Star, Heart, BookOpen, Pencil, ShoppingCart } from "lucide-react";
+import { Star, Heart, BookOpen, Pencil } from "lucide-react";
 import { useBookState } from "@/hooks/useBookState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/hooks/useWishlist";
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useCart } from "@/hooks/useCart";
 import { useUserData } from '@/contexts/UserDataContext';
 import { getCoverImageUrl, hasCoverImage } from '@/utils/imageUtils';
+import { useToast } from "@/hooks/use-toast";
 
 const REVIEWS_PER_PAGE = 3;
 
@@ -26,30 +27,119 @@ const BookDetails = () => {
   const { data: book, isLoading, error } = useBookDetails(id || '');
   const { data: allBooks = [] } = useBooks();
   const { user } = useAuth();
-  const { userLibrary, wishlist, cart, removeFromLibrary, addToLibrary } = useUserData();
+  const { userLibrary, wishlist, cart, removeFromLibrary, addToLibrary, addToWishlist, removeFromWishlist } = useUserData();
   const { addToCart } = useCart(user?.id || '');
   const { data: reviews = [], isLoading: reviewsLoading } = useReviews(id || '');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewPage, setReviewPage] = useState(1);
+  const { toast } = useToast();
 
-  // Add/Remove from Library handler
-  const handleLibraryAction = async () => {
+  // Library logic
+  const isInLibrary = userLibrary.some((entry: any) => (entry.book?._id || entry.book?.id || entry._id || entry.id) === (book?._id || book?.id));
+  const isInWishlist = wishlist.some((item: any) => (item.book?._id || item._id || item.id) === (book?._id || book?.id));
+  
+  console.log('BookDetails debug:', { 
+    bookId: book?._id, 
+    isInLibrary, 
+    isInWishlist,
+    addToLibrary: !!addToLibrary, 
+    removeFromLibrary: !!removeFromLibrary,
+    addToWishlist: !!addToWishlist,
+    removeFromWishlist: !!removeFromWishlist
+  });
+  
+  const handleWishlistAction = async () => {
+    console.log('Wishlist action clicked:', { bookId: book?._id, isInWishlist, isInLibrary });
+    
+    if (!user) {
+      console.log('No user logged in');
+      return;
+    }
+    
+    // Safety check: if book is in library, don't allow wishlist actions
     if (isInLibrary) {
-      removeFromLibrary.mutate(book?._id || '');
-    } else {
-      addToLibrary.mutate(book?._id || '');
+      console.log('BookDetails: Book is in library, cannot modify wishlist');
+      toast({
+        title: "Cannot Modify Wishlist",
+        description: "Books in your library cannot be added to or removed from wishlist.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
+    try {
+      if (isInWishlist) {
+        console.log('Removing from wishlist...');
+        await removeFromWishlist.mutateAsync(book?._id || '');
+        console.log('Removed from wishlist successfully');
+      } else {
+        console.log('Adding to wishlist...');
+        await addToWishlist.mutateAsync({ bookId: book?._id || '' });
+        console.log('Added to wishlist successfully');
+      }
+    } catch (error) {
+      console.error('Wishlist action error:', error);
     }
   };
 
-  // Ensure wishlist is always an array
-  const safeWishlist = Array.isArray(wishlist) ? wishlist : [];
-
-  // Wishlist logic
-  const isInWishlist = wishlist.some((item: any) => (item.book?._id || item._id || item.id) === (book?._id || book?.id));
-  const isInLibrary = userLibrary.some((entry: any) => (entry.book?._id || entry.book?.id || entry._id || entry.id) === (book?._id || book?.id));
-  
-  const handleWishlistAction = async () => {
-    // TODO: Use context mutation for wishlist if available
+  const handleLibraryAction = async () => {
+    console.log('Library action clicked:', { bookId: book?._id, isInLibrary, isInWishlist });
+    
+    if (!user) {
+      console.log('No user logged in');
+      return;
+    }
+    
+    try {
+      if (isInLibrary) {
+        console.log('Removing from library...');
+        await removeFromLibrary.mutateAsync(book?._id || '');
+        console.log('Removed from library successfully');
+      } else {
+        console.log('Adding to library...');
+        await addToLibrary.mutateAsync(book?._id || '');
+        console.log('Added to library successfully');
+        
+        // Auto-remove from wishlist when added to library
+        if (isInWishlist) {
+          console.log('BookDetails: Auto-removing from wishlist after adding to library...');
+          try {
+            await removeFromWishlist.mutateAsync(book?._id || '');
+            console.log('BookDetails: Successfully auto-removed from wishlist');
+            
+            toast({
+              title: "Added to Library",
+              description: "Book has been added to your library and removed from wishlist.",
+              duration: 2000,
+            });
+          } catch (wishlistError) {
+            console.error('BookDetails: Failed to auto-remove from wishlist:', wishlistError);
+            
+            toast({
+              title: "Warning",
+              description: "Book added to library but failed to remove from wishlist. Please remove manually.",
+              variant: "destructive",
+              duration: 4000,
+            });
+          }
+        } else {
+          toast({
+            title: "Added to Library",
+            description: "Book has been added to your library.",
+            duration: 2000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Library action error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add book to library.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
   };
 
   // Related books: 4 books with at least one matching tag, not current book
@@ -121,22 +211,35 @@ const BookDetails = () => {
                   </Button>
                 )}
                 <div className="flex w-full gap-2">
-                  {/* Wishlist Button: Show for all books */}
+                  {/* Wishlist Button: Disabled if book is in library */}
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    className={`flex-1 rounded-lg ${isInWishlist ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' : ''}`}
-                    onClick={handleWishlistAction}
+                    className={`flex-1 rounded-lg ${
+                      isInLibrary 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : isInWishlist 
+                          ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
+                          : ''
+                    }`}
+                    onClick={isInLibrary ? undefined : handleWishlistAction}
+                    disabled={isInLibrary}
+                    title={isInLibrary ? "Cannot modify wishlist for books in library" : ""}
                   >
-                    <Heart className={`w-4 h-4 mr-2 ${isInWishlist ? 'fill-red-500 text-red-500' : ''}`} fill={isInWishlist ? '#ef4444' : 'none'} />
-                    {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                    <Heart className={`w-4 h-4 mr-2 ${
+                      isInLibrary 
+                        ? 'text-gray-400' 
+                        : isInWishlist 
+                          ? 'fill-red-500 text-red-500' 
+                          : ''
+                    }`} />
+                    {isInLibrary 
+                      ? 'In Library' 
+                      : isInWishlist 
+                        ? 'Remove from Wishlist' 
+                        : 'Add to Wishlist'
+                    }
                   </Button>
-                  {!isBookFree && (
-                    <Button variant="outline" size="lg" className="flex-1 rounded-lg">
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -166,7 +269,7 @@ const BookDetails = () => {
                 ))}
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{book.title}</h1>
-              <p className="text-lg text-gray-600 mb-3">by {book.author}</p>
+              <p className="text-lg text-gray-600 mb-3 truncate">by {book.author}</p>
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex items-center gap-1">
                   {[...Array(5)].map((_, i) => (
@@ -192,7 +295,7 @@ const BookDetails = () => {
               </div>
               {/* Title & Author */}
               <h1 className="text-2xl font-bold text-gray-900 mb-1">{book.title}</h1>
-              <p className="text-base text-gray-600 mb-2">by {book.author}</p>
+              <p className="text-base text-gray-600 mb-2 truncate">by {book.author}</p>
               {/* Stars & Price */}
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center gap-1">
@@ -298,9 +401,9 @@ const BookDetails = () => {
         {relatedBooks.length > 0 && (
           <div className="w-full max-w-2xl mx-auto p-4">
             <h2 className="text-lg font-bold mb-2">Related Books</h2>
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pb-2">
               {relatedBooks.map((relatedBook) => (
-                <div key={relatedBook._id || relatedBook.id} className="min-w-[7rem]">
+                <div key={relatedBook._id || relatedBook.id} className="min-w-[7rem] flex-shrink-0 snap-start">
                   <BookCard book={relatedBook} variant="compact" />
                 </div>
               ))}

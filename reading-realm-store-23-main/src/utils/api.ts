@@ -18,7 +18,12 @@ async function request(method: string, url: string, data?: any) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    console.log(`API ${method} ${url}: Token found, adding Authorization header`);
+  } else {
+    console.log(`API ${method} ${url}: No token found`);
+  }
   
   const opts: RequestInit = {
     method,
@@ -27,9 +32,13 @@ async function request(method: string, url: string, data?: any) {
   };
   
   try {
+    console.log(`Making ${method} request to ${API_BASE}${url}`);
     const res = await fetch(`${API_BASE}${url}`, opts);
+    console.log(`Response status: ${res.status} for ${url}`);
+    
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
+      console.error(`API error for ${url}:`, err);
       
       // Handle authentication errors gracefully
       if (res.status === 401 || res.status === 403 || err.message?.includes('token')) {
@@ -41,8 +50,12 @@ async function request(method: string, url: string, data?: any) {
       
       throw new Error(err.message || 'API error');
     }
-    return res.status === 204 ? null : res.json();
+    
+    const result = res.status === 204 ? null : await res.json();
+    console.log(`API ${method} ${url} successful:`, result ? 'Data received' : 'No content');
+    return result;
   } catch (error) {
+    console.error(`API ${method} ${url} failed:`, error);
     // If error is authentication, redirect
     if (error instanceof Error && error.message === 'Authentication required') {
       if (url !== '/books' && url !== '/books/' && !url.startsWith('/books?') && url !== '/auth/me') {

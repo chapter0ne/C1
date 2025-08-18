@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getCoverImageUrl, hasCoverImage } from "@/utils/imageUtils";
+import { useToast } from "@/hooks/use-toast";
 
 interface BookCardProps {
   book: Book;
@@ -22,6 +23,7 @@ interface BookCardProps {
   isInWishlist?: boolean;
   isInLibrary?: boolean;
   isInCart?: boolean;
+  showHeart?: boolean; // New prop to control heart visibility
 }
 
 const BookCard = ({ 
@@ -38,23 +40,69 @@ const BookCard = ({
   showActionButtons = false,
   isInWishlist = false,
   isInLibrary = false,
-  isInCart = false
+  isInCart = false,
+  showHeart = true
 }: BookCardProps) => {
+  const { toast } = useToast();
   // Guard against missing book or title
   if (!book || !book.title) return null;
-  console.log('[BookCard] Rendering book:', book);
+  
+  // Show heart button based on variant and prop
+  const shouldShowHeart = showHeart && variant !== 'list';
+  
+  console.log('[BookCard] Rendering book:', { 
+    bookId: book._id, 
+    title: book.title, 
+    isInWishlist, 
+    isInLibrary, 
+    isInCart,
+    showHeart,
+    shouldShowHeart,
+    heartButtonState: isInWishlist ? 'filled' : 'empty',
+    heartButtonVisible: shouldShowHeart && !isInLibrary,
+    onAddToWishlist: !!onAddToWishlist,
+    onRemoveFromWishlist: !!onRemoveFromWishlist
+  });
+  
   // const { user } = useAuth();
   // Remove useBookState
 
-  const handleWishlistAction = (e: React.MouseEvent) => {
+  const handleHeartAction = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('BookCard: Heart button clicked!', { 
+      bookId: book._id, 
+      bookTitle: book.title,
+      isInWishlist, 
+      isInLibrary,
+      onAddToWishlist: !!onAddToWishlist, 
+      onRemoveFromWishlist: !!onRemoveFromWishlist,
+      event: e,
+      target: e.target
+    });
+    
+    // Safety check: if book is in library, don't allow wishlist actions
+    if (isInLibrary) {
+      console.log('BookCard: Book is in library, cannot modify wishlist');
+      toast({
+        title: "Cannot Modify Wishlist",
+        description: "Books in your library cannot be added to or removed from wishlist.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
     if (isInWishlist) {
+      console.log('BookCard: Removing from wishlist...', { bookId: book._id });
       onRemoveFromWishlist?.(book._id);
     } else {
+      console.log('BookCard: Adding to wishlist...', { bookId: book._id });
       onAddToWishlist?.(book._id);
     }
   };
+
+
 
   const handlePrimaryAction = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -82,9 +130,6 @@ const BookCard = ({
     return categoryColorMap[book.category || book.genre || 'default'] || '#6b7280';
   };
   const shadowColor = getShadowColor();
-
-  // Show heart button for all books (including those in library)
-  const showHeart = variant !== 'list';
 
   if (variant === 'list') {
     return (
@@ -131,13 +176,21 @@ const BookCard = ({
   };
 
   return (
-    <Link to={`/book/${book._id}`} className="block group min-w-0 flex-shrink-0">
-      <div className={`flex flex-col w-36 sm:w-40 md:w-44 relative`}>
-        {/* Book Cover */}
+    <div className="block group min-w-0 flex-shrink-0">
+      {/* Default/Compact Variant */}
+      <div className={`flex flex-col w-32 sm:w-36 md:w-40 lg:w-44 relative flex-shrink-0`}>
+        {/* Book Cover - Click to Open Book */}
         <div className="relative mb-2">
           <div 
-            className="aspect-[3/4] bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg flex items-center justify-center text-white relative overflow-hidden shadow-lg"
+            className="aspect-[3/4] bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg flex items-center justify-center text-white relative overflow-hidden shadow-lg cursor-pointer"
             style={{ filter: `drop-shadow(4px 4px 8px ${shadowColor}40)` }}
+            onClick={() => {
+              if (isInLibrary) {
+                window.location.href = `/book/${book._id}/read`;
+              } else {
+                window.location.href = `/book/${book._id}`;
+              }
+            }}
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
             {hasCoverImage(book) ? (
@@ -162,16 +215,22 @@ const BookCard = ({
                 ×
               </button>
             )}
-            {/* Wishlist Heart */}
-            {showHeart && (
+            {/* Wishlist Heart - Shows wishlist state and functions as wishlist button */}
+            {/* Only show heart button if book is NOT in library */}
+            {shouldShowHeart && !isInLibrary && (
               <button
-                onClick={handleWishlistAction}
-                className={`absolute top-1 left-1 p-1 backdrop-blur-sm rounded-full transition-colors opacity-0 group-hover:opacity-100 ${
-                  isInWishlist ? 'bg-red-500/80 text-white' : 'bg-white/20 hover:bg-white/30'
+                onClick={handleHeartAction}
+                className={`absolute top-1 left-1 p-1 backdrop-blur-sm rounded-full transition-colors z-30 ${
+                  isInWishlist ? 'bg-white/90 border border-white' : 'bg-white/20 hover:bg-white/30'
                 }`}
                 title={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                style={{ 
+                  minWidth: '24px', 
+                  minHeight: '24px',
+                  cursor: 'pointer'
+                }}
               >
-                <Heart className={`w-2 h-2 ${isInWishlist ? 'fill-red-500 text-red-500' : ''}`} fill={isInWishlist ? '#ef4444' : 'none'} />
+                <Heart className={`w-3 h-3 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-white'}`} />
               </button>
             )}
           </div>
@@ -188,17 +247,23 @@ const BookCard = ({
           )}
         </div>
         {/* Book Details */}
-        <div className="space-y-1">
-          {/* Title */}
-          <h3 className="font-semibold text-gray-900 text-xs leading-tight line-clamp-2">
+        <div className="space-y-2 pb-4">
+          {/* Title - Click to Open Book Details */}
+          <h3 
+            className="font-semibold text-gray-900 text-xs leading-tight line-clamp-2 cursor-pointer hover:text-[#D01E1E] transition-colors px-1"
+            onClick={() => window.location.href = `/book/${book._id}`}
+          >
             {book.title}
           </h3>
-          {/* Author */}
-          <p className="text-xs text-gray-600">
-            {book.author}
+          {/* Author - Click to Open Book Details */}
+          <p 
+            className="text-xs text-gray-600 truncate cursor-pointer hover:text-[#D01E1E] transition-colors px-1"
+            onClick={() => window.location.href = `/book/${book._id}`}
+          >
+            by {book.author}
           </p>
           {/* Rating and Price on same line */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1">
               <Star className="w-2 h-2 text-black fill-black" />
               <span className="text-xs text-gray-700 font-medium">{typeof book.rating === 'number' ? book.rating.toFixed(1) : '0.0'}</span>
@@ -226,7 +291,7 @@ const BookCard = ({
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 

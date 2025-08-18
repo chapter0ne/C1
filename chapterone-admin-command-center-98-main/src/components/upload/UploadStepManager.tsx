@@ -70,6 +70,7 @@ const UploadStepManager = ({
           <BookDetailsStep 
             formData={formData} 
             selectedTags={selectedTags} 
+            coverImageUrl={coverImageUrl}
             onInputChange={onInputChange} 
             onTagToggle={onTagToggle} 
             isValid={isStep1Valid()} 

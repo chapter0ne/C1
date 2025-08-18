@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, BookOpen, Heart, Star, User } from "lucide-react";
 import InfiniteBookCarousel from "@/components/InfiniteBookCarousel";
+import BookCard from "@/components/BookCard";
 import { useToast } from "@/hooks/use-toast";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,11 +13,21 @@ import { useUserData } from '@/contexts/UserDataContext';
 
 // Skeleton loader for book carousels
 const BookCarouselSkeleton = () => (
-  <div className="flex gap-4 overflow-x-auto pb-2">
-    {Array.from({ length: 6 }).map((_, i) => (
-      <div key={i} className="w-32 h-48 bg-gray-200 animate-pulse rounded-lg" />
-    ))}
-  </div>
+  <>
+    {/* Mobile: Horizontal scroll skeleton */}
+    <div className="flex gap-4 overflow-x-auto pb-2 md:hidden">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="w-32 h-48 bg-gray-200 animate-pulse rounded-lg flex-shrink-0" />
+      ))}
+    </div>
+    
+    {/* Desktop: Flexbox layout that wraps naturally */}
+    <div className="hidden md:flex md:flex-wrap gap-4 lg:gap-6">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="w-32 h-48 bg-gray-200 animate-pulse rounded-lg" />
+      ))}
+    </div>
+  </>
 );
 
 const Index = () => {
@@ -26,7 +37,18 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: books = [], isLoading: booksLoading, error: booksError } = useBooks();
-  const { userLibrary, wishlist, cart } = useUserData();
+  const { userLibrary, wishlist, cart, addToWishlist, removeFromWishlist } = useUserData();
+
+  // Debug logging
+  console.log('Index page state:', { 
+    userLibraryLength: userLibrary.length, 
+    wishlistLength: wishlist.length, 
+    cartItemsLength: cart.items.length,
+    addToWishlist: !!addToWishlist,
+    removeFromWishlist: !!removeFromWishlist,
+    wishlistSample: wishlist.slice(0, 2), // Show first 2 wishlist items
+    userLibrarySample: userLibrary.slice(0, 2) // Show first 2 library items
+  });
 
   // Remove blocking loading/error states
   // if (booksLoading) {
@@ -55,15 +77,66 @@ const Index = () => {
     navigate(`/explore?category=${encodeURIComponent(category)}`);
   };
 
-  const handleAddToWishlist = (bookId: string) => {
+  const handleAddToWishlist = async (bookId: string) => {
+    console.log('Index: handleAddToWishlist called with bookId:', bookId);
     if (!user) {
+      console.log('Index: No user, navigating to auth');
       navigate('/auth');
       return;
     }
+    try {
+      console.log('Index: Calling addToWishlist.mutateAsync...');
+      await addToWishlist.mutateAsync({ bookId });
+      console.log('Index: addToWishlist.mutateAsync completed successfully');
+      
+      // Show success toast
     toast({
       title: "Added to Wishlist",
       description: "Book has been added to your wishlist.",
-    });
+        duration: 2000, // 2 seconds
+      });
+    } catch (error) {
+      console.error('Index: Failed to add to wishlist:', error);
+      
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to add book to wishlist.",
+        variant: "destructive",
+        duration: 3000, // 3 seconds for errors
+      });
+    }
+  };
+
+  const handleRemoveFromWishlist = async (bookId: string) => {
+    console.log('Index: handleRemoveFromWishlist called with bookId:', bookId);
+    if (!user) {
+      console.log('Index: No user, navigating to auth');
+      navigate('/auth');
+      return;
+    }
+    try {
+      console.log('Index: Calling removeFromWishlist.mutateAsync...');
+      await removeFromWishlist.mutateAsync(bookId);
+      console.log('Index: removeFromWishlist.mutateAsync completed successfully');
+      
+      // Show success toast
+      toast({
+        title: "Removed from Wishlist",
+        description: "Book has been removed from your wishlist.",
+        duration: 2000, // 2 seconds
+      });
+    } catch (error) {
+      console.error('Index: Failed to remove from wishlist:', error);
+      
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to remove book from wishlist.",
+        variant: "destructive",
+        duration: 3000, // 3 seconds for errors
+      });
+    }
   };
 
   const handleExploreClick = () => {
@@ -83,7 +156,14 @@ const Index = () => {
 
   // Helper functions for instant state
   const isBookInLibrary = (bookId: string) => userLibrary.some((entry: any) => (entry.book?._id || entry.book?.id || entry._id || entry.id) === bookId);
-  const isBookInWishlist = (bookId: string) => wishlist.some((item: any) => (item._id || item.id) === bookId);
+  const isBookInWishlist = (bookId: string) => {
+    const result = wishlist.some((item: any) => (item.book?._id || item.book?.id || item._id || item.id) === bookId);
+    console.log('isBookInWishlist check:', { bookId, result, wishlistItems: wishlist.map(item => ({ 
+      itemId: item._id || item.id, 
+      bookId: item.book?._id || item.book?.id 
+    })) });
+    return result;
+  };
   const isBookInCart = (bookId: string) => cart.items.some((item: any) => (item.book?._id || item.book?.id) === bookId);
 
   const categories = ["All", "Fiction", "Romance", "Sci-Fi", "Thriller", "Adventure"];
@@ -187,7 +267,28 @@ const Index = () => {
 
       <section className="bg-white px-4 pb-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {/* Mobile: Horizontal scroll */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide md:hidden">
+            {categories.map((category, index) => (
+              <div key={category} className="flex-shrink-0">
+                <Button
+                  variant={index === 0 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => index > 0 && handleCategoryClick(category)}
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium ${
+                    index === 0 
+                      ? "bg-[#D01E1E] text-white hover:bg-[#B01818]" 
+                      : "border-gray-200 text-gray-600 hover:border-[#D01E1E] hover:text-white hover:bg-[#D01E1E]"
+                  }`}
+                >
+                  {category}
+                </Button>
+              </div>
+            ))}
+          </div>
+          
+          {/* Desktop: Flexbox layout that wraps naturally */}
+          <div className="hidden md:flex md:flex-wrap gap-3">
             {categories.map((category, index) => (
               <Button
                 key={category}
@@ -217,15 +318,16 @@ const Index = () => {
           </div>
           <div className="lg:hidden">
             {booksLoading ? <BookCarouselSkeleton /> : (
-              <InfiniteBookCarousel 
-                books={books}
-                getBookState={(book) => ({
-                  isInLibrary: isBookInLibrary(book._id),
-                  isInWishlist: isBookInWishlist(book._id),
-                  isInCart: isBookInCart(book._id)
-                })}
-                onAddToWishlist={handleAddToWishlist}
-              />
+            <InfiniteBookCarousel 
+              books={books}
+              getBookState={(book) => ({
+                isInLibrary: isBookInLibrary(book._id),
+                isInWishlist: isBookInWishlist(book._id),
+                isInCart: isBookInCart(book._id)
+              })}
+              onAddToWishlist={handleAddToWishlist}
+                onRemoveFromWishlist={handleRemoveFromWishlist}
+            />
             )}
           </div>
           <div className="hidden lg:grid grid-cols-6 gap-6">
@@ -233,39 +335,16 @@ const Index = () => {
               Array.from({ length: 12 }).map((_, i) => <div key={i} className="w-full h-64 bg-gray-200 animate-pulse rounded-lg" />)
             ) : (
               books.slice(0, 12).map((book) => (
-                <Link key={book._id} to={user ? `/book/${book._id}` : '/auth'} className="block group">
-                  <div className="flex flex-col">
-                    <div className="relative mb-3">
-                      <div className={`aspect-[3/4] bg-gradient-to-br ${book.gradient} rounded-lg flex items-center justify-center text-white relative overflow-hidden shadow-lg`}>
-                        <div className="absolute inset-0 bg-black/10"></div>
-                        <div className="text-center z-10 p-4">
-                          <h3 className="font-bold text-sm leading-tight mb-1">{book.title.split(' ')[0]}</h3>
-                          <h3 className="font-bold text-sm leading-tight">{book.title.split(' ').slice(1).join(' ')}</h3>
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleAddToWishlist(book._id);
-                          }}
-                          className="absolute top-2 right-2 p-1 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Heart className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{book.title}</h3>
-                      <p className="text-xs text-gray-600">{book.author}</p>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 text-black fill-black" />
-                        <span className="text-xs text-gray-700 font-medium">{typeof book.rating === 'number' ? book.rating.toFixed(1) : 'N/A'}</span>
-                      </div>
-                      <p className={`text-sm font-semibold ${isBookFree(book) ? "text-green-600" : "text-gray-900"}`}>
-                        {isBookFree(book) ? "Free" : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 'N/A'}`}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
+                <BookCard 
+                  key={book._id}
+                  book={book}
+                  variant="compact"
+                  showActionButtons={false}
+                  isInWishlist={isBookInWishlist(book._id)}
+                  isInLibrary={isBookInLibrary(book._id)}
+                  onAddToWishlist={handleAddToWishlist}
+                  onRemoveFromWishlist={handleRemoveFromWishlist}
+                />
               ))
             )}
           </div>
@@ -282,15 +361,16 @@ const Index = () => {
           </div>
           <div className="lg:hidden">
             {booksLoading ? <BookCarouselSkeleton /> : (
-              <InfiniteBookCarousel 
-                books={books}
-                getBookState={(book) => ({
-                  isInLibrary: isBookInLibrary(book._id),
-                  isInWishlist: isBookInWishlist(book._id),
-                  isInCart: isBookInCart(book._id)
-                })}
-                onAddToWishlist={handleAddToWishlist}
-              />
+            <InfiniteBookCarousel 
+              books={books}
+              getBookState={(book) => ({
+                isInLibrary: isBookInLibrary(book._id),
+                isInWishlist: isBookInWishlist(book._id),
+                isInCart: isBookInCart(book._id)
+              })}
+              onAddToWishlist={handleAddToWishlist}
+                onRemoveFromWishlist={handleRemoveFromWishlist}
+            />
             )}
           </div>
           <div className="hidden lg:grid grid-cols-6 gap-6">
@@ -298,39 +378,16 @@ const Index = () => {
               Array.from({ length: 12 }).map((_, i) => <div key={i} className="w-full h-64 bg-gray-200 animate-pulse rounded-lg" />)
             ) : (
               books.slice(0, 12).map((book) => (
-                <Link key={book._id} to={user ? `/book/${book._id}` : '/auth'} className="block group">
-                  <div className="flex flex-col">
-                    <div className="relative mb-3">
-                      <div className={`aspect-[3/4] bg-gradient-to-br ${book.gradient} rounded-lg flex items-center justify-center text-white relative overflow-hidden shadow-lg`}>
-                        <div className="absolute inset-0 bg-black/10"></div>
-                        <div className="text-center z-10 p-4">
-                          <h3 className="font-bold text-sm leading-tight mb-1">{book.title.split(' ')[0]}</h3>
-                          <h3 className="font-bold text-sm leading-tight">{book.title.split(' ').slice(1).join(' ')}</h3>
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleAddToWishlist(book._id);
-                          }}
-                          className="absolute top-2 right-2 p-1 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Heart className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{book.title}</h3>
-                      <p className="text-xs text-gray-600">{book.author}</p>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 text-black fill-black" />
-                        <span className="text-xs text-gray-700 font-medium">{typeof book.rating === 'number' ? book.rating.toFixed(1) : 'N/A'}</span>
-                      </div>
-                      <p className={`text-sm font-semibold ${isBookFree(book) ? "text-green-600" : "text-gray-900"}`}>
-                        {isBookFree(book) ? "Free" : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 'N/A'}`}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
+                <BookCard 
+                  key={book._id}
+                  book={book}
+                  variant="compact"
+                  showActionButtons={false}
+                  isInWishlist={isBookInWishlist(book._id)}
+                  isInLibrary={isBookInLibrary(book._id)}
+                  onAddToWishlist={handleAddToWishlist}
+                  onRemoveFromWishlist={handleRemoveFromWishlist}
+                />
               ))
             )}
           </div>

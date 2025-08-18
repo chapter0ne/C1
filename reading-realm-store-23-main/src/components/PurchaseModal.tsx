@@ -46,11 +46,11 @@ const PurchaseModal = ({ isOpen, onClose, book, onPurchaseSuccess }: PurchaseMod
               <div className="absolute inset-0 bg-black/20"></div>
               <div className="text-center z-10 p-2">
                 <h3 className="font-bold text-sm mb-1">{book.title.toUpperCase()}</h3>
-                <p className="text-xs opacity-90">{book.author.toUpperCase()}</p>
+                <p className="text-xs opacity-90 truncate">{book.author.toUpperCase()}</p>
               </div>
             </div>
             <h3 className="font-medium text-gray-900 mb-2">{book.title}</h3>
-            <p className="text-gray-600 mb-4">by {book.author}</p>
+            <p className="text-gray-600 mb-4 truncate">by {book.author}</p>
             <div className="text-2xl font-bold">
               <span className={book.isFree ? "text-green-600" : "text-[#D01E1E]"}>
                 {book.isFree ? "Free" : `$${book.price}`}

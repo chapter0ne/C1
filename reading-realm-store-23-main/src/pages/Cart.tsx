@@ -215,7 +215,7 @@ const Cart = () => {
                                   <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
                                     {book.title}
                                   </h3>
-                                  <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
+                                  <p className="text-sm text-gray-600 mb-2 truncate">by {book.author}</p>
                                   <p className="text-lg font-bold text-[#D01E1E]">
                                     ₦{book.price?.toLocaleString() || '0'}
                                   </p>

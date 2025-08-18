@@ -317,7 +317,7 @@ const EnhancedBookReader = () => {
             </Link>
             <div className="flex-1 flex flex-col items-center">
               <span className="font-semibold text-base truncate max-w-xs" style={{ color: isMidnight ? '#fff' : '#222' }}>{book.title}</span>
-              <span className="text-xs opacity-70" style={{ color: isMidnight ? '#eee' : '#555' }}>by {book.author}</span>
+              <span className="text-xs opacity-70 truncate max-w-xs" style={{ color: isMidnight ? '#eee' : '#555' }}>by {book.author}</span>
             </div>
             <div className="flex items-center gap-2">
               <Button 
@@ -396,7 +396,7 @@ const EnhancedBookReader = () => {
                 </Link>
                 <div className="hidden sm:block">
                   <h1 className="font-semibold text-lg truncate max-w-xs" style={{ color: isMidnight ? '#fff' : '#222' }}>{book.title}</h1>
-                  <p className="text-sm opacity-70" style={{ color: isMidnight ? '#eee' : '#555' }}>by {book.author}</p>
+                  <p className="text-sm opacity-70 truncate max-w-xs" style={{ color: isMidnight ? '#eee' : '#555' }}>by {book.author}</p>
                 </div>
               </div>
 
