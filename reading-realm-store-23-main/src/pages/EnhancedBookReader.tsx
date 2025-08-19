@@ -122,6 +122,10 @@ const EnhancedBookReader = () => {
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Add flip animation state
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [flipDirection, setFlipDirection] = useState<'left' | 'right' | null>(null);
+  
   // UI state
   const [showChapters, setShowChapters] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -172,31 +176,49 @@ const EnhancedBookReader = () => {
     }
   }, [currentChapter, chapters, scrollType, fontSize]);
 
-  // Calculate pages for current chapter (flip mode)
+  // Calculate pages using word-by-word DOM measurement for precise pagination
   const calculatePages = (content: string) => {
-    // Create a temporary div to measure content height
+    if (!content) return 1;
+    
+    const containerHeight = window.innerHeight - 350;
+    
+    // Create a temporary div to measure content
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
     tempDiv.style.visibility = 'hidden';
-    tempDiv.style.height = 'auto';
     tempDiv.style.width = '100%';
+    tempDiv.style.maxWidth = '800px';
     tempDiv.style.fontSize = `${fontSize}px`;
     tempDiv.style.fontFamily = selectedFont;
     tempDiv.style.lineHeight = '1.7';
-    tempDiv.style.padding = '0';
-    tempDiv.style.margin = '0';
-    tempDiv.innerHTML = formatText(content);
+    tempDiv.style.padding = '20px';
+    tempDiv.style.boxSizing = 'border-box';
+    tempDiv.style.overflow = 'hidden';
     
     document.body.appendChild(tempDiv);
-    const contentHeight = tempDiv.scrollHeight;
-    document.body.removeChild(tempDiv);
     
-    // Calculate viewport height (subtract padding, margins, and fixed bottom info)
-    const viewportHeight = window.innerHeight - 280; // Account for fixed bottom info
-    
-    // Calculate number of pages needed
-    const pages = Math.ceil(contentHeight / viewportHeight);
-    return Math.max(1, pages);
+    try {
+      const words = formatText(content).split(' ');
+      let pageCount = 1;
+      let currentPageContent = '';
+      
+      for (let i = 0; i < words.length; i++) {
+        const testContent = currentPageContent + (currentPageContent ? ' ' : '') + words[i];
+        tempDiv.innerHTML = testContent;
+        
+        if (tempDiv.scrollHeight > containerHeight) {
+          // Content exceeds container, start a new page
+          pageCount++;
+          currentPageContent = words[i]; // Start new page with current word
+        } else {
+          currentPageContent = testContent;
+        }
+      }
+      
+      return Math.max(1, pageCount);
+    } finally {
+      document.body.removeChild(tempDiv);
+    }
   };
 
   // Calculate current page position across all chapters for progress bar
@@ -229,7 +251,7 @@ const EnhancedBookReader = () => {
   };
 
   // Get total count for display
-  const getTotalCount = () => {
+  const getTotalPages = () => {
     if (scrollType === 'flip') {
       return calculateTotalPages();
     }
@@ -322,7 +344,7 @@ const EnhancedBookReader = () => {
     document.body.removeChild(tempDiv);
     
     // Calculate viewport height
-    const viewportHeight = window.innerHeight - 200;
+    const viewportHeight = window.innerHeight - 350;
     
     // Calculate page boundaries
     const pageHeight = viewportHeight;
@@ -339,44 +361,31 @@ const EnhancedBookReader = () => {
     };
   };
 
-  // Handle page change with flip animation
-  const handlePageChange = (direction: 'next' | 'prev') => {
-    if (direction === 'next') {
-      if (currentPage < pagesPerChapter - 1) {
-        setCurrentPage(currentPage + 1);
-      } else if (currentChapter < (chapters?.length || 0) - 1) {
-        // Move to next chapter
-        setCurrentChapter(currentChapter + 1);
-        setCurrentPage(0);
-      }
-    } else {
-      if (currentPage > 0) {
-        setCurrentPage(currentPage - 1);
-      } else if (currentChapter > 0) {
-        // Move to previous chapter
-        setCurrentChapter(currentChapter - 1);
-        setCurrentPage(Math.max(0, calculatePages(chapters[currentChapter - 1].content) - 1));
-      }
-    }
-  };
-
-  // Add flip animation state
-  const [isFlipping, setIsFlipping] = useState(false);
-  const [flipDirection, setFlipDirection] = useState<'left' | 'right' | null>(null);
-
-  // Enhanced page change with flip animation
+  // Enhanced page change with flip animation - simplified
   const handlePageChangeWithFlip = (direction: 'next' | 'prev') => {
     if (isFlipping) return; // Prevent multiple flips at once
     
     setIsFlipping(true);
     setFlipDirection(direction === 'next' ? 'left' : 'right');
     
-    // Wait for flip animation to complete before changing page
+    // Wait for flip animation to complete before changing page/chapter
     setTimeout(() => {
-      handlePageChange(direction);
+      if (direction === 'next') {
+        if (currentChapter < (chapters?.length || 0) - 1) {
+          // Move to next chapter
+          setCurrentChapter(currentChapter + 1);
+          setCurrentPage(0);
+        }
+      } else {
+        if (currentChapter > 0) {
+          // Move to previous chapter
+          setCurrentChapter(currentChapter - 1);
+          setCurrentPage(0);
+        }
+      }
       setIsFlipping(false);
       setFlipDirection(null);
-    }, 400); // Match CSS transition duration (0.4s)
+    }, 600); // Match CSS transition duration (0.6s)
   };
 
   // Swipe gesture handling for flip mode
@@ -391,48 +400,76 @@ const EnhancedBookReader = () => {
   };
 
   // Touch event handlers for swipe detection
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const [touchStart, setTouchStart] = useState<number>(0); // Changed to number
+  const [touchStartTime, setTouchStartTime] = useState<number>(0); // Added
+  const [touchEnd, setTouchEnd] = useState<number>(0); // Changed to number
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (scrollType === 'flip') {
-      setTouchStart({
-        x: e.targetTouches[0].clientX,
-        y: e.targetTouches[0].clientY
-      });
-      setTouchEnd(null);
-    }
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (scrollType === 'flip' && touchStart) {
-      setTouchEnd({
-        x: e.targetTouches[0].clientX,
-        y: e.targetTouches[0].clientY
-      });
-    }
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd || scrollType !== 'flip') return;
-
-    const distanceX = touchStart.x - touchEnd.x;
-    const distanceY = touchStart.y - touchEnd.y;
-    const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
-    const minSwipeDistance = 30; // Reduced for better responsiveness
-
-    if (isHorizontalSwipe && Math.abs(distanceX) > minSwipeDistance) {
-      if (distanceX > 0) {
-        // Swipe left - next page
-        handleSwipe('left');
+  // Handle page navigation in flip mode
+  const handlePageFlip = (direction: 'left' | 'right') => {
+    if (scrollType !== 'flip') return;
+    
+    const totalPagesInChapter = getPagesInCurrentChapter();
+    
+    if (direction === 'left') {
+      // Flip to next page
+      if (currentPage < totalPagesInChapter - 1) {
+        setCurrentPage(currentPage + 1);
       } else {
-        // Swipe right - previous page
-        handleSwipe('right');
+        // Move to next chapter, first page
+        if (currentChapter < chapters.length - 1) {
+          handleChapterChange(currentChapter + 1);
+          setCurrentPage(0);
+        }
+      }
+    } else {
+      // Flip to previous page
+      if (currentPage > 0) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        // Move to previous chapter, last page
+        if (currentChapter > 0) {
+          const prevChapter = currentChapter - 1;
+          const prevChapterData = chapters[prevChapter];
+          const prevChapterPages = calculatePages(prevChapterData.content);
+          handleChapterChange(prevChapter);
+          setCurrentPage(prevChapterPages - 1);
+        }
       }
     }
+  };
 
-    setTouchStart(null);
-    setTouchEnd(null);
+  // Update touch handlers to use page flipping
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (scrollType !== 'flip') return;
+    
+    const touch = e.touches[0];
+    setTouchStart(touch.clientX);
+    setTouchStartTime(Date.now());
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (scrollType !== 'flip') return;
+    
+    const touch = e.changedTouches[0];
+    const touchEnd = touch.clientX;
+    const touchEndTime = Date.now();
+    
+    const deltaX = touchStart - touchEnd;
+    const deltaTime = touchEndTime - touchStart;
+    
+    // Check if it's a valid swipe (minimum distance and time)
+    if (Math.abs(deltaX) > 50 && deltaTime < 300) {
+      if (deltaX > 0) {
+        // Swipe left - next page
+        handlePageFlip('left');
+      } else {
+        // Swipe right - previous page
+        handlePageFlip('right');
+      }
+    }
+    
+    setTouchStart(0);
+    setTouchStartTime(0);
   };
 
   // Handle vertical scroll for chapter navigation in flip mode
@@ -542,6 +579,12 @@ const EnhancedBookReader = () => {
       const newSize = increment ? prev + 1 : prev - 1;
       const finalSize = Math.max(12, Math.min(32, newSize));
       localStorage.setItem('reading-font-size', finalSize.toString());
+      
+      // Reset to first page when font size changes to recalculate pagination
+      if (scrollType === 'flip') {
+        setCurrentPage(0);
+      }
+      
       return finalSize;
     });
   };
@@ -556,6 +599,71 @@ const EnhancedBookReader = () => {
     localStorage.setItem('reading-font-family', font);
   };
 
+  // Get the content for the current page using DOM-based pagination that respects container bounds
+  const getCurrentPageContent = () => {
+    if (!currentChapterData || !currentChapterData.content) {
+      return '';
+    }
+    
+    const content = currentChapterData.content;
+    const containerHeight = window.innerHeight - 350;
+    
+    // Create a temporary div to measure content
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.visibility = 'hidden';
+    tempDiv.style.width = '100%';
+    tempDiv.style.maxWidth = '800px';
+    tempDiv.style.fontSize = `${fontSize}px`;
+    tempDiv.style.fontFamily = selectedFont;
+    tempDiv.style.lineHeight = '1.7';
+    tempDiv.style.padding = '20px';
+    tempDiv.style.boxSizing = 'border-box';
+    tempDiv.style.overflow = 'hidden';
+    
+    document.body.appendChild(tempDiv);
+    
+    try {
+      const words = formatText(content).split(' ');
+      const pages = [];
+      let currentPageContent = '';
+      let pageIndex = 0;
+      
+      // Build all pages by adding words until they exceed container height
+      for (let i = 0; i < words.length; i++) {
+        const testContent = currentPageContent + (currentPageContent ? ' ' : '') + words[i];
+        tempDiv.innerHTML = testContent;
+        
+        if (tempDiv.scrollHeight > containerHeight && currentPageContent) {
+          // Content exceeds container, save current page and start new one
+          pages.push(currentPageContent);
+          currentPageContent = words[i]; // Start new page with current word
+        } else {
+          currentPageContent = testContent;
+        }
+      }
+      
+      // Add the last page if it has content
+      if (currentPageContent) {
+        pages.push(currentPageContent);
+      }
+      
+      // Return the content for the current page
+      return pages[currentPage] || pages[0] || '';
+    } finally {
+      document.body.removeChild(tempDiv);
+    }
+  };
+
+  // Get the total number of pages in the current chapter
+  const getPagesInCurrentChapter = () => {
+    if (!currentChapterData || !currentChapterData.content) {
+      return 1;
+    }
+    
+    return calculatePages(currentChapterData.content);
+  };
+
   return (
     <div 
       className="min-h-screen flex flex-col"
@@ -564,6 +672,22 @@ const EnhancedBookReader = () => {
         color: isMidnight ? '#fff' : currentTheme.text
       }}
     >
+      <style>
+        {`
+          .page-content {
+            overflow: hidden !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+          .page-content::-webkit-scrollbar {
+            display: none !important;
+          }
+          .page-content * {
+            overflow: hidden !important;
+            max-width: 100% !important;
+          }
+        `}
+      </style>
       {/* Mobile: Fixed Top Nav + Progress Bar with Glass Blur */}
       {isMobile && (
         <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md" style={{ background: isMidnight ? 'rgba(24,24,24,0.2)' : 'rgba(255,255,255,0.2)', borderBottom: isMidnight ? '1px solid rgba(51,51,51,0.2)' : '1px solid rgba(238,238,238,0.2)' }}>
@@ -830,11 +954,12 @@ const EnhancedBookReader = () => {
           style={{ 
             minHeight: 0, 
             position: 'relative',
-            marginLeft: (!isMobile && showChapters && chapters && chapters.length > 0) ? '320px' : '0'
+            marginLeft: (!isMobile && showChapters && chapters && chapters.length > 0) ? '320px' : '0',
+            overflow: scrollType === 'flip' ? 'hidden' : 'auto'
           }}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
+          onTouchStart={handleTouchStart}
+          onTouchMove={() => {}} // No onTouchMove for flip mode, handled by handleTouchEnd
+          onTouchEnd={handleTouchEnd}
           onWheel={handleVerticalScroll}
         >
           {/* Settings Panel - Fixed to top with animations */}
@@ -982,7 +1107,8 @@ const EnhancedBookReader = () => {
             className="w-full mx-auto px-2 sm:px-4 lg:px-6 py-4 transition-all duration-300 ease-in-out"
             style={{ 
               paddingTop: showSettings ? '280px' : '2rem',
-              paddingBottom: isMobile && chapters && chapters.length > 1 ? '80px' : '2rem'
+              paddingBottom: isMobile && chapters && chapters.length > 1 ? '80px' : '2rem',
+              overflow: scrollType === 'flip' ? 'hidden' : 'auto'
             }}
           >
             {scrollType === 'scroll' ? (
@@ -1016,9 +1142,9 @@ const EnhancedBookReader = () => {
                 />
               </div>
             ) : (
-              // Flip Mode - Page-based horizontal layout
+              // Flip Mode - Page-based horizontal layout with realistic page curls
               <div 
-                className="reading-content prose prose-lg max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto"
+                className="reading-content max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto"
                 ref={contentRef}
                 style={{
                   fontSize: `${fontSize}px`,
@@ -1026,115 +1152,56 @@ const EnhancedBookReader = () => {
                   lineHeight: '1.7',
                   color: isMidnight ? '#fff' : currentTheme.text,
                   background: isMidnight ? '#181818' : undefined,
-                  textAlign: 'left', // Left-align content like a proper page
-                  width: '100%' // Ensure full width within constraints
+                  textAlign: 'left',
+                  width: '100%',
+                  overflow: 'hidden'
                 }}
               >
                 <h1 className="text-3xl font-bold mb-6 text-center" style={{ color: currentTheme.text }}>
                   {currentChapterData.title}
                 </h1>
                 
-                {/* Page content with COMPLETELY FIXED positioning - NO SCROLLING */}
+                {/* Page content - direct display, no containers */}
                 <div 
-                  className="chapter-content relative w-full"
-                  style={{
-                    height: `${window.innerHeight - 280}px`, // Reduced height to prevent overflow
+                  className="page-content"
+                  dangerouslySetInnerHTML={{ 
+                    __html: formatText(getCurrentPageContent()) 
+                  }} 
+                  style={{ 
+                    color: currentTheme.text,
+                    fontSize: `${fontSize}px !important`,
+                    fontFamily: `${selectedFont} !important`,
+                    lineHeight: '1.7 !important',
+                    height: `${window.innerHeight - 350}px`,
+                    width: '100%',
+                    padding: '20px',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden', // NO SCROLLING
+                    userSelect: 'none',
+                    touchAction: 'none',
                     position: 'relative',
-                    overflow: 'hidden', // Completely disable scrolling
-                    userSelect: 'none', // Prevent text selection
-                    touchAction: 'none', // Ensure touch gestures are captured here
-                    perspective: '1200px', // Add 3D perspective for flip effect
-                    transformStyle: 'preserve-3d',
-                    padding: '0 20px' // Add horizontal padding for better readability
+                    display: 'block'
                   }}
-                >
-                  {/* Page flip overlay for visual effect */}
-                  {isFlipping && (
-                    <div 
-                      className="page-flip-overlay absolute inset-0 pointer-events-none z-10"
-                      style={{
-                        background: flipDirection === 'left'
-                          ? 'linear-gradient(to right, rgba(0,0,0,0.05) 0%, transparent 50%)'
-                          : 'linear-gradient(to left, rgba(0,0,0,0.05) 0%, transparent 50%)',
-                        opacity: 0.8,
-                        transition: 'opacity 0.4s ease-out'
-                      }}
-                    />
-                  )}
-                  
-                  <div 
-                    className="page-content w-full"
-                    style={{
-                      transform: `translateY(-${currentPage * (window.innerHeight - 280)}px)`,
-                      transition: isFlipping ? 'none' : 'transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: `${window.innerHeight - 280}px`, // Match height
-                      width: '100%',
-                      // Add 3D flip animation
-                      transformStyle: 'preserve-3d',
-                      backfaceVisibility: 'hidden'
-                    }}
-                  >
-                    {/* Current page content with flip animation */}
-                    <div 
-                      className={`page-face ${isFlipping ? 'flipping' : ''}`}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: '100%',
-                        width: '100%',
-                        transform: isFlipping && flipDirection === 'left' 
-                          ? 'rotateY(-90deg)' 
-                          : isFlipping && flipDirection === 'right'
-                          ? 'rotateY(90deg)'
-                          : 'rotateY(0deg)',
-                        transition: 'transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                        transformOrigin: flipDirection === 'left' ? 'left center' : 'right center',
-                        backfaceVisibility: 'hidden',
-                        // Add enhanced shadow effect during flip
-                        boxShadow: isFlipping 
-                          ? flipDirection === 'left'
-                            ? 'inset -15px 0 30px rgba(0,0,0,0.15), -5px 0 15px rgba(0,0,0,0.1)'
-                            : 'inset 15px 0 30px rgba(0,0,0,0.15), 5px 0 15px rgba(0,0,0,0.1)'
-                          : 'none',
-                        // Add subtle border for page effect
-                        border: '1px solid rgba(0,0,0,0.05)',
-                        borderRadius: '2px'
-                      }}
-                    >
-                      <div 
-                        dangerouslySetInnerHTML={{ 
-                          __html: formatText(currentChapterData.content) 
-                        }} 
-                        style={{ 
-                          color: currentTheme.text,
-                          fontSize: `${fontSize}px !important`,
-                          fontFamily: `${selectedFont} !important`,
-                          lineHeight: '1.7 !important',
-                          height: '100%',
-                          overflow: 'hidden',
-                          width: '100%',
-                          padding: '20px',
-                          boxSizing: 'border-box',
-                          // Add subtle background for page effect
-                          background: isMidnight ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.8)'
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                />
                 
-                {/* Removed in-content indicators; moved below reading center */}
+                {/* Page flip shadow overlay */}
+                {isFlipping && (
+                  <div 
+                    className="page-flip-shadow fixed inset-0 pointer-events-none z-10"
+                    style={{
+                      background: flipDirection === 'left'
+                        ? 'radial-gradient(ellipse at right center, rgba(0,0,0,0.2) 0%, transparent 70%)'
+                        : 'radial-gradient(ellipse at left center, rgba(0,0,0,0.2) 0%, transparent 70%)',
+                      opacity: 0.6,
+                      transition: 'opacity 0.6s ease-out'
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>
 
-          {/* Fixed bottom info for flip mode - prevents content overflow */}
+          {/* Fixed bottom info for flip mode - shows actual pages */}
           {scrollType === 'flip' && (
             <div
               className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center justify-center px-4 py-3 backdrop-blur-md"
@@ -1145,10 +1212,10 @@ const EnhancedBookReader = () => {
               }}
             >
               <div className="text-sm font-medium" style={{ color: isMidnight ? '#e0e0e0' : '#555' }}>
-                Page {currentPage + 1} of {pagesPerChapter}
+                Page {currentPage + 1} of {getPagesInCurrentChapter()}
               </div>
               <div className="text-xs opacity-70 mt-1" style={{ color: isMidnight ? '#e0e0e0' : '#555' }}>
-                💡 Swipe left/right to flip pages
+                💡 Swipe left/right to flip between pages
               </div>
             </div>
           )}
@@ -1178,7 +1245,7 @@ const EnhancedBookReader = () => {
                 <ChevronLeft className="w-4 h-4" /> Prev
               </Button>
               <div className="text-xs opacity-70" style={{ color: isMidnight ? '#eee' : '#555' }}>
-                {`Chapter ${currentChapter + 1} of ${chapters.length}`}
+                {`Page ${getCurrentPagePosition() + 1} of ${getTotalPages()}`}
               </div>
               <Button
                 variant="outline"
@@ -1202,9 +1269,15 @@ const EnhancedBookReader = () => {
       {/* Add floating/fixed button to reopen chapter panel (desktop) */}
       {!isMobile && !showChapters && (
         <button
-          className="fixed left-0 top-1/3 z-50 bg-[#D01E1E] text-white rounded-r-lg px-3 py-2 shadow-lg"
+          className="fixed left-0 top-1/3 z-50 text-white rounded-r-lg px-3 py-2 shadow-lg backdrop-blur-md"
           onClick={() => setShowChapters(true)}
-          style={{ minWidth: 40 }}
+          style={{ 
+            minWidth: 40,
+            background: 'rgba(208,30,30,0.85)',
+            border: '1px solid rgba(208,30,30,0.3)',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 32px rgba(208,30,30,0.3)'
+          }}
           aria-label="Show Chapters"
         >
           <List className="w-5 h-5" />
@@ -1217,9 +1290,10 @@ const EnhancedBookReader = () => {
           className="fixed right-4 bottom-12 z-50 text-white rounded-full w-12 h-12 shadow-lg flex items-center justify-center backdrop-blur-md"
           onClick={() => setShowChapters(true)}
           style={{
-            background: isMidnight ? 'rgba(208,30,30,0.6)' : 'rgba(208,30,30,0.6)', // Made slightly transparent
-            border: isMidnight ? '1px solid rgba(208,30,30,0.3)' : '1px solid rgba(208,30,30,0.3)',
-            backdropFilter: 'blur(8px)'
+            background: 'rgba(208,30,30,0.85)',
+            border: '1px solid rgba(208,30,30,0.3)',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 32px rgba(208,30,30,0.3)'
           }}
           aria-label="Show Chapters"
         >

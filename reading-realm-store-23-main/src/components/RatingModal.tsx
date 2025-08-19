@@ -68,17 +68,7 @@ const RatingModal = ({ isOpen, onClose, book, onRatingSubmit, canReview = false 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold text-gray-900">Rate & Review</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+                      <DialogTitle className="text-xl font-bold text-gray-900">Rating</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -100,7 +90,7 @@ const RatingModal = ({ isOpen, onClose, book, onRatingSubmit, canReview = false 
                   <Star
                     className={`w-8 h-8 transition-colors ${
                       star <= (hoveredRating || rating)
-                        ? "text-yellow-400 fill-yellow-400"
+                        ? "text-black fill-black"
                         : "text-gray-300"
                     }`}
                   />
@@ -109,23 +99,14 @@ const RatingModal = ({ isOpen, onClose, book, onRatingSubmit, canReview = false 
             </div>
           </div>
 
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Your Review (optional)</h4>
-            <Textarea
-              placeholder="Share your thoughts about this book..."
-              value={review}
-              onChange={(e) => setReview(e.target.value)}
-              rows={4}
-              className="resize-none"
-            />
-          </div>
+
 
           <Button
             onClick={handleSubmit}
             className="w-full bg-[#D01E1E] hover:bg-[#B01818] py-3"
             disabled={rating === 0 || isSubmitting}
           >
-            {isSubmitting ? "Submitting..." : "Submit Review"}
+            {isSubmitting ? "Submitting..." : "Submit Rating"}
           </Button>
         </div>
       </DialogContent>
