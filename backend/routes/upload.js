@@ -3,6 +3,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { deleteImage } = require('../utils/cloudinaryUtils');
+const uploadConfig = require('../config/upload');
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'book-covers',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    allowed_formats: uploadConfig.allowedImageFormats,
     transformation: [
       { width: 400, height: 600, crop: 'fill', gravity: 'auto' },
       { quality: 'auto', fetch_format: 'auto' }
@@ -23,19 +24,16 @@ const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     console.log('File filter called with:', file);
-    const allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
     
-    if (!fileExtension || !allowedFormats.includes(fileExtension)) {
+    if (!fileExtension || !uploadConfig.allowedImageFormats.includes(fileExtension)) {
       console.log('File format not allowed:', fileExtension);
-      return cb(new Error(`File format .${fileExtension} is not allowed. Please use: ${allowedFormats.join(', ')}`));
+      return cb(new Error(`File format .${fileExtension} is not allowed. Please use: ${uploadConfig.allowedImageFormats.join(', ')}`));
     }
     
     cb(null, true);
   },
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
+  limits: uploadConfig.multer
 });
 
 // POST /api/upload/book-cover

@@ -6,16 +6,47 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
-// Configure Cloudinary
+// Import configurations
 const cloudinary = require('./config/cloudinary');
+const uploadConfig = require('./config/upload');
+const { largeUploadHandler, validateUploadSize } = require('./middleware/largeUploadHandler');
 
 console.log('MONGODB_URI:', process.env.MONGODB_URI);
 console.log('JWT_SECRET:', process.env.JWT_SECRET);
 console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME);
+console.log('Upload limits configured:', {
+  maxFileSize: `${uploadConfig.maxFileSize / (1024 * 1024 * 1024)}GB`,
+  maxBodySize: `${uploadConfig.maxBodySize / (1024 * 1024 * 1024)}GB`
+});
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+
+// Large upload handling middleware
+app.use(largeUploadHandler);
+app.use(validateUploadSize);
+
+// Increase body parser limits for large book uploads
+app.use(express.json({ 
+  limit: uploadConfig.express.json
+}));
+app.use(express.urlencoded({ 
+  limit: uploadConfig.express.urlencoded, 
+  extended: true 
+}));
+app.use(express.text({ 
+  limit: uploadConfig.express.text
+}));
+app.use(express.raw({ 
+  limit: uploadConfig.express.raw
+}));
+
+// Set timeout for large uploads
+app.use((req, res, next) => {
+  req.setTimeout(uploadConfig.timeouts.uploadTimeout);
+  res.setTimeout(uploadConfig.timeouts.uploadTimeout);
+  next();
+});
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)
