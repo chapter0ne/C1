@@ -5,6 +5,7 @@ const bookSchema = new mongoose.Schema({
   author: { type: String, required: true },
   description: { type: String },
   genre: { type: String },
+  tags: [{ type: String }], // Add tags array for multiple categories
   isbn: { type: String },
   price: { type: Number, default: 0 },
   isFree: { type: Boolean, default: false },

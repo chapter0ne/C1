@@ -81,8 +81,14 @@ const EnhancedBrowseBooks = () => {
     });
   }, [user, allBooks, isLoading, error]);
 
-  // Categories including Short Stories
-  const categories = ["Romance", "Horror", "Thriller", "Fiction", "Sci-Fi", "Adventure", "Mystery", "Fantasy", "Crime", "Short Stories"];
+  // Categories matching business model: Fiction and Non-Fiction with specific subcategories
+  const categories = [
+    // Fiction Categories
+    "Fiction", "Romance", "Thriller", "Adventure", "Mystery", "Fantasy", "Sci-Fi", "Horror", "Drama", "Comedy", "Crime", "Short Stories",
+    
+    // Non-Fiction Categories (Limited to business requirements)
+    "Non-Fiction", "Biography", "Autobiography", "Poetry"
+  ];
   const priceRanges = ['All', 'Free', 'Paid'];
 
   useEffect(() => {
@@ -98,6 +104,16 @@ const EnhancedBrowseBooks = () => {
   const getCategoryBooks = (category: string) => {
     console.log(`getCategoryBooks called for category: ${category}`);
     console.log(`Total books available: ${allBooks.length}`);
+    
+    // Debug: Log available tags from books
+    const allTags = new Set();
+    allBooks.forEach(book => {
+      if (book.tags && Array.isArray(book.tags)) {
+        book.tags.forEach(tag => allTags.add(tag));
+      }
+      if (book.genre) allTags.add(book.genre);
+    });
+    console.log('Available tags across all books:', Array.from(allTags));
     
     // If category is 'All', return all books (this was the bug!)
     if (category === 'All') {
@@ -119,26 +135,45 @@ const EnhancedBrowseBooks = () => {
       // Check if book matches the selected category - be more intelligent with matching
       let matchesCategory = false;
       
+      // Debug: Log book details for matching
+      console.log(`Checking book "${book.title}" for category "${category}":`, {
+        bookTags: book.tags,
+        bookGenre: book.genre,
+        bookCategory: book.category
+      });
+      
       // Check exact matches first
       if (book.tags && Array.isArray(book.tags)) {
         matchesCategory = book.tags.some(tag => 
           tag.toLowerCase() === category.toLowerCase()
         );
+        if (matchesCategory) {
+          console.log(`Book "${book.title}" matches via tags:`, book.tags);
+        }
       }
       
       // Check single tag field
       if (!matchesCategory && book.tag) {
         matchesCategory = book.tag.toLowerCase() === category.toLowerCase();
+        if (matchesCategory) {
+          console.log(`Book "${book.title}" matches via single tag:`, book.tag);
+        }
       }
       
       // Check category field
       if (!matchesCategory && book.category) {
         matchesCategory = book.category.toLowerCase() === category.toLowerCase();
+        if (matchesCategory) {
+          console.log(`Book "${book.title}" matches via category:`, book.category);
+        }
       }
       
       // Check genre field
       if (!matchesCategory && book.genre) {
         matchesCategory = book.genre.toLowerCase() === category.toLowerCase();
+        if (matchesCategory) {
+          console.log(`Book "${book.title}" matches via genre:`, book.genre);
+        }
       }
       
       // Check for partial matches in tags (more flexible)
@@ -148,11 +183,17 @@ const EnhancedBrowseBooks = () => {
           const categoryLower = category.toLowerCase();
           
           // Check if tag contains category or category contains tag
-          return tagLower.includes(categoryLower) || 
+          const partialMatch = tagLower.includes(categoryLower) || 
                  categoryLower.includes(tagLower) ||
                  // Handle common variations
                  (category === 'Sci-Fi' && (tagLower.includes('sci-fi') || tagLower.includes('science fiction') || tagLower.includes('scifi'))) ||
                  (category === 'Short Stories' && (tagLower.includes('short story') || tagLower.includes('short stories') || tagLower.includes('short')));
+          
+          if (partialMatch) {
+            console.log(`Book "${book.title}" matches via partial tag match:`, { tag, category });
+          }
+          
+          return partialMatch;
         });
       }
       

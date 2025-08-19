@@ -330,7 +330,7 @@ const Index = () => {
             />
             )}
           </div>
-          <div className="hidden lg:grid grid-cols-6 gap-6">
+          <div className="hidden lg:flex lg:flex-wrap gap-4 lg:gap-6">
             {booksLoading ? (
               Array.from({ length: 12 }).map((_, i) => <div key={i} className="w-full h-64 bg-gray-200 animate-pulse rounded-lg" />)
             ) : (
@@ -373,7 +373,7 @@ const Index = () => {
             />
             )}
           </div>
-          <div className="hidden lg:grid grid-cols-6 gap-6">
+          <div className="hidden lg:flex lg:flex-wrap gap-4 lg:gap-6">
             {booksLoading ? (
               Array.from({ length: 12 }).map((_, i) => <div key={i} className="w-full h-64 bg-gray-200 animate-pulse rounded-lg" />)
             ) : (

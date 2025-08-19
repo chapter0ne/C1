@@ -49,11 +49,11 @@ const BookDetailsStep = ({
   }, [coverImageUrl]);
 
   const availableTags = [
-    "Programming", "Horror", "Art", "Business", "Technology", "Fiction", 
-    "Non-Fiction", "Self-Help", "Mystery", "Romance", "Science", 
-    "Biography", "History", "Philosophy", "Psychology", "Health", 
-    "Cooking", "Travel", "Sports", "Music", "Photography", "Poetry",
-    "Drama", "Comedy", "Thriller", "Adventure", "Fantasy", "Sci-Fi"
+    // Fiction Categories
+    "Fiction", "Romance", "Thriller", "Adventure", "Mystery", "Fantasy", "Sci-Fi", "Horror", "Drama", "Comedy", "Crime", "Short Stories",
+    
+    // Non-Fiction Categories (Limited to business requirements)
+    "Non-Fiction", "Biography", "Autobiography", "Poetry", "Poems"
   ];
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,9 +162,6 @@ const BookDetailsStep = ({
               <SelectContent>
                 <SelectItem value="fiction">Fiction</SelectItem>
                 <SelectItem value="non-fiction">Non-Fiction</SelectItem>
-                <SelectItem value="technology">Technology</SelectItem>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="self-help">Self Help</SelectItem>
               </SelectContent>
             </Select>
           </div>

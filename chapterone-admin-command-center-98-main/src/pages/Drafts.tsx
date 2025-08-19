@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Search, Eye, Edit, Trash2 } from "lucide-react";
+import { MoreHorizontal, Search, Edit, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/utils/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useDeleteBook } from "@/hooks/books/useDeleteBook";
 
 const Drafts = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,18 +47,8 @@ const Drafts = () => {
     }
   });
 
-  const deleteBookMutation = useMutation({
-    mutationFn: async (bookId: string) => {
-      return await api.del(`/books/${bookId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['all-books']);
-      toast.success('Book deleted successfully!');
-    },
-    onError: () => {
-      toast.error('Failed to delete book');
-    }
-  });
+  // Use the improved useDeleteBook hook instead of local mutation
+  const deleteBookMutation = useDeleteBook();
 
   const handleEditBook = (bookId: string) => {
     navigate(`/upload/${bookId}`);

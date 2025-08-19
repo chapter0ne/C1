@@ -2,7 +2,11 @@ const express = require('express');
 const Book = require('../models/Book');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const timeout = require('../middleware/timeout');
 const router = express.Router();
+
+// Apply timeout middleware to all routes (30 seconds)
+router.use(timeout(30000));
 
 // Auth middleware
 const authMiddleware = (req, res, next) => {
@@ -62,11 +66,16 @@ router.get('/', authMiddleware, async (req, res) => {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
         { author: { $regex: search, $options: 'i' } },
-        { genre: { $regex: search, $options: 'i' } }
+        { genre: { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } } // Add tags to search
       ];
     }
     if (category && category !== 'All') {
-      filter.genre = category;
+      // Filter by both genre and tags for better categorization
+      filter.$or = [
+        { genre: { $regex: category, $options: 'i' } },
+        { tags: { $regex: category, $options: 'i' } }
+      ];
     }
     if (price && price !== 'All') {
       if (price === 'Paid') filter.isFree = false;
@@ -88,11 +97,16 @@ router.get('/search', authMiddleware, async (req, res) => {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
         { author: { $regex: search, $options: 'i' } },
-        { genre: { $regex: search, $options: 'i' } }
+        { genre: { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } } // Add tags to search
       ];
     }
     if (category && category !== 'All') {
-      filter.genre = category;
+      // Filter by both genre and tags for better categorization
+      filter.$or = [
+        { genre: { $regex: category, $options: 'i' } },
+        { tags: { $regex: category, $options: 'i' } }
+      ];
     }
     if (price && price !== 'All') {
       if (price === 'Paid') filter.isFree = false;
@@ -154,7 +168,12 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
 // Delete book (admin only)
 router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
-    console.log('Delete book request:', { bookId: req.params.id, user: req.user });
+    console.log('Delete book request started:', { 
+      bookId: req.params.id, 
+      userId: req.user.userId,
+      userRoles: req.user.roles,
+      timestamp: new Date().toISOString()
+    });
     
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -162,13 +181,74 @@ router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'Invalid book ID format' });
     }
     
-    const book = await Book.findByIdAndDelete(req.params.id);
-    console.log('Delete result:', book);
-    if (!book) return res.status(404).json({ message: 'Book not found' });
-    res.json({ message: 'Book deleted' });
+    // Check if book exists before deletion
+    const existingBook = await Book.findById(req.params.id);
+    if (!existingBook) {
+      console.log('Book not found for deletion:', req.params.id);
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    console.log('Book found, proceeding with deletion:', {
+      bookId: existingBook._id,
+      title: existingBook.title,
+      status: existingBook.status
+    });
+    
+    // Delete the book
+    const deleteResult = await Book.findByIdAndDelete(req.params.id);
+    console.log('Book deletion completed:', {
+      bookId: req.params.id,
+      deleteResult: deleteResult ? 'success' : 'failed',
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!deleteResult) {
+      console.log('Book deletion failed - no result returned');
+      return res.status(500).json({ message: 'Failed to delete book' });
+    }
+    
+    // Also delete associated chapters if they exist
+    try {
+      const Chapter = require('../models/Chapter');
+      const chapterDeleteResult = await Chapter.deleteMany({ book: req.params.id });
+      console.log('Associated chapters deleted:', {
+        bookId: req.params.id,
+        chaptersDeleted: chapterDeleteResult.deletedCount
+      });
+    } catch (chapterError) {
+      console.warn('Warning: Could not delete associated chapters:', chapterError.message);
+      // Don't fail the main deletion if chapter deletion fails
+    }
+    
+    console.log('Book deletion process completed successfully');
+    res.json({ 
+      message: 'Book deleted successfully',
+      bookId: req.params.id,
+      title: existingBook.title,
+      chaptersDeleted: true
+    });
+    
   } catch (err) {
-    console.error('Delete book error:', err);
-    res.status(500).json({ message: err.message });
+    console.error('Delete book error occurred:', {
+      bookId: req.params.id,
+      error: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Send appropriate error response
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid book ID format' });
+    }
+    
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Validation error: ' + err.message });
+    }
+    
+    res.status(500).json({ 
+      message: 'Internal server error during book deletion',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred'
+    });
   }
 });
 

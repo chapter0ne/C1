@@ -177,7 +177,12 @@ const Search = () => {
         if (category === 'Others') {
           // For "Others", we need to check if the book doesn't fit into any predefined categories
           // This is a simplified version - in practice, you might want to match the exact logic from EnhancedBrowseBooks
-          const predefinedCategories = ['Romance', 'Horror', 'Thriller', 'Fiction', 'Sci-Fi', 'Adventure', 'Mystery', 'Fantasy', 'Crime', 'Short Stories'];
+          const predefinedCategories = [
+            // Fiction Categories
+            "Fiction", "Romance", "Thriller", "Adventure", "Mystery", "Fantasy", "Sci-Fi", "Horror", "Drama", "Comedy", "Crime", "Short Stories",
+            // Non-Fiction Categories
+            "Non-Fiction", "Biography", "Autobiography", "Poetry"
+          ];
           
           // Check if book has any of the predefined categories
           const hasPredefinedCategory = predefinedCategories.some(predefinedCat => {

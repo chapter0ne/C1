@@ -87,7 +87,7 @@ const BookCard = ({
         title: "Cannot Modify Wishlist",
         description: "Books in your library cannot be added to or removed from wishlist.",
         variant: "destructive",
-        duration: 2000, // 2 seconds for consistency
+        duration: 3000,
       });
       return;
     }
