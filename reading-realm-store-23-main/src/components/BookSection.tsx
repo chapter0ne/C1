@@ -26,7 +26,7 @@ const BookSection = ({
       <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 px-4 md:px-0">{title}</h2>
       {/* Mobile/Tablet: Horizontal scroll, Desktop: Grid */}
       <div className="md:hidden">
-        <div className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide scroll-smooth snap-x snap-mandatory">
+        <div className="flex gap-3 overflow-x-auto pb-1 px-2 scrollbar-hide scroll-smooth snap-x snap-mandatory">
           {books.map((book, index) => (
             <div key={book._id || book.id || index} className="flex-shrink-0 snap-start w-28">
               <BookCard

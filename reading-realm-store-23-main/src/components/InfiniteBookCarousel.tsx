@@ -55,7 +55,7 @@ const InfiniteBookCarousel = ({
       <div className="md:hidden">
         <div 
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide"
+          className="flex gap-3 overflow-x-auto pb-1 px-2 scrollbar-hide"
           style={{ scrollBehavior: 'auto' }}
         >
           {tripleBooks.map((book, index) => (

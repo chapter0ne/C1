@@ -47,6 +47,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       toast({
         title: "Removed from Library",
         description: "Book has been removed from your library.",
+        duration: 2000, // 2 seconds
       });
     },
     onError: () => {
@@ -54,6 +55,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         title: "Error",
         description: "Failed to remove book from library.",
         variant: "destructive",
+        duration: 2000, // 2 seconds
       });
     },
   });
@@ -68,6 +70,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       toast({
         title: "Added to Library",
         description: "Book has been added to your library.",
+        duration: 2000, // 2 seconds
       });
     },
     onError: () => {
@@ -75,6 +78,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         title: "Error",
         description: "Failed to add book to library.",
         variant: "destructive",
+        duration: 2000, // 2 seconds
       });
     },
   });

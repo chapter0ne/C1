@@ -53,8 +53,14 @@ export const useUploadActions = () => {
     setIsSubmitting(true)
     try {
       let coverImageUrl = null;
+      
+      // Handle cover image: use new upload or preserve existing
       if (formData.coverImage) {
+        // New cover image uploaded
         coverImageUrl = await uploadBookCover(formData.coverImage);
+      } else if (isEditMode && formData.coverImageUrl) {
+        // Preserve existing cover image when editing
+        coverImageUrl = formData.coverImageUrl;
       }
 
       const bookData = {
@@ -110,8 +116,14 @@ export const useUploadActions = () => {
       }
 
       let coverImageUrl = null;
+      
+      // Handle cover image: use new upload or preserve existing
       if (formData.coverImage) {
+        // New cover image uploaded
         coverImageUrl = await uploadBookCover(formData.coverImage);
+      } else if (isEditMode && formData.coverImageUrl) {
+        // Preserve existing cover image when editing
+        coverImageUrl = formData.coverImageUrl;
       }
 
       const bookData = {

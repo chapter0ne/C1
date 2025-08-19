@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Star, Heart } from "lucide-react";
 import { Book } from "@/types/book";
@@ -88,7 +87,7 @@ const BookCard = ({
         title: "Cannot Modify Wishlist",
         description: "Books in your library cannot be added to or removed from wishlist.",
         variant: "destructive",
-        duration: 3000,
+        duration: 2000, // 2 seconds for consistency
       });
       return;
     }

@@ -10,6 +10,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      duration={2000} // 2 seconds
+      closeButton={true} // Show close button
+      position="top-right" // Position from top-right
       toastOptions={{
         classNames: {
           toast:
@@ -19,6 +22,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+          closeButton: "group-[.toast]:text-foreground hover:text-foreground/80",
         },
       }}
       {...props}

@@ -6,6 +6,7 @@ interface UploadNavigationProps {
   currentStep: number;
   isStep1Valid: boolean;
   isStep2Valid: boolean;
+  isStep3Valid: boolean;
   onNext: () => void;
   onPrevious: () => void;
   onSaveDraft: () => void;
@@ -17,6 +18,7 @@ const UploadNavigation = ({
   currentStep, 
   isStep1Valid, 
   isStep2Valid, 
+  isStep3Valid,
   onNext, 
   onPrevious, 
   onSaveDraft, 
@@ -52,7 +54,7 @@ const UploadNavigation = ({
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <Save className="w-4 h-4" />
+            <Save className="h-4 w-4" />
           )}
           Save Draft
         </Button>
@@ -71,13 +73,13 @@ const UploadNavigation = ({
         {showPublishButton && (
           <Button 
             onClick={onPublish}
-            disabled={!isStep1Valid || !isStep2Valid || isLoading}
+            disabled={!isStep1Valid || !isStep2Valid || !isStep3Valid || isLoading}
             className="bg-black hover:bg-gray-800 text-white flex items-center gap-2"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Upload className="w-4 h-4" />
+              <Upload className="h-4 w-4" />
             )}
             Publish Book
           </Button>

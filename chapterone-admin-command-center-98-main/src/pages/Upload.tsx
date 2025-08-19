@@ -92,6 +92,7 @@ const Upload = () => {
   const {
     isStep1Valid,
     isStep2Valid,
+    isStep3Valid,
     isStepAccessible
   } = useUploadValidation(formData, selectedTags, chapters, coverImageUrl);
 
@@ -233,6 +234,7 @@ const Upload = () => {
           currentStep={currentStep}
           isStep1Valid={isStep1Valid()}
           isStep2Valid={isStep2Valid()}
+          isStep3Valid={isStep3Valid()}
           onNext={() => handleNext(isStep1Valid(), isStep2Valid())}
           onPrevious={handlePrevious}
           onSaveDraft={handleSaveDraftWithData}

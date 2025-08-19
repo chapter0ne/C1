@@ -221,29 +221,29 @@ const Index = () => {
         </div>
       </header>
 
-      <section className="relative bg-gradient-to-br from-gray-50 to-gray-100 py-20 px-4 sm:px-6 lg:px-8">
+      <section className="relative bg-gradient-to-br from-gray-50 to-gray-100 py-6 md:py-20 px-2 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <div className="flex justify-center mb-8">
-              <div className="w-16 h-16 bg-[#D01E1E] flex items-center justify-center rounded-2xl">
-                <BookOpen className="w-8 h-8 text-white" />
+            <div className="flex justify-center mb-2 md:mb-8">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-[#D01E1E] flex items-center justify-center rounded-2xl">
+                <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-2xl md:text-6xl font-bold text-gray-900 mb-2 md:mb-6">
               Discover Your Next
               <span className="text-[#D01E1E] block">Great Read</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            <p className="text-sm md:text-xl text-gray-600 mb-3 md:mb-8 max-w-3xl mx-auto">
               Join thousands of readers exploring curated book collections, building reading lists, and discovering stories that matter.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-2 md:gap-4 justify-center">
               {user ? (
                 <>
-                  <Button onClick={handleExploreClick} size="lg" className="bg-[#D01E1E] hover:bg-[#B01818] text-lg py-6 px-8 rounded-xl">
+                  <Button onClick={handleExploreClick} size="lg" className="bg-[#D01E1E] hover:bg-[#B01818] text-base md:text-lg py-3 md:py-6 px-4 md:px-8 rounded-xl">
                     Explore Books
                   </Button>
                   <Link to="/library" className="hidden md:block">
-                    <Button variant="outline" size="lg" className="text-lg py-6 px-8 rounded-xl">
+                    <Button variant="outline" size="lg" className="text-base md:text-lg py-3 md:py-6 px-4 md:px-8 rounded-xl">
                       My Library
                     </Button>
                   </Link>
@@ -251,11 +251,11 @@ const Index = () => {
               ) : (
                 <>
                   <Link to="/auth">
-                    <Button size="lg" className="bg-[#D01E1E] hover:bg-[#B01818] text-lg py-6 px-8 rounded-xl">
+                    <Button size="lg" className="bg-[#D01E1E] hover:bg-[#B01818] text-base md:text-lg py-3 md:py-6 px-4 md:px-8 rounded-xl">
                       Get Started Free
                     </Button>
                   </Link>
-                  <Button onClick={handleExploreClick} variant="outline" size="lg" className="text-lg py-6 px-8 rounded-xl">
+                  <Button onClick={handleExploreClick} variant="outline" size="lg" className="text-base md:text-lg py-3 md:py-6 px-4 md:px-8 rounded-xl">
                     Explore Books
                   </Button>
                 </>
@@ -265,17 +265,17 @@ const Index = () => {
         </div>
       </section>
 
-      <section className="bg-white px-4 pb-6">
+      <section className="bg-white px-1 md:px-4 pb-2 md:pb-6">
         <div className="max-w-7xl mx-auto">
           {/* Mobile: Horizontal scroll */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide md:hidden">
+          <div className="flex gap-1 md:gap-2 overflow-x-auto pb-1 md:pb-2 scrollbar-hide md:hidden">
             {categories.map((category, index) => (
               <div key={category} className="flex-shrink-0">
                 <Button
                   variant={index === 0 ? "default" : "outline"}
                   size="sm"
                   onClick={() => index > 0 && handleCategoryClick(category)}
-                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium ${
+                  className={`whitespace-nowrap rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs font-medium ${
                     index === 0 
                       ? "bg-[#D01E1E] text-white hover:bg-[#B01818]" 
                       : "border-gray-200 text-gray-600 hover:border-[#D01E1E] hover:text-white hover:bg-[#D01E1E]"
@@ -308,11 +308,11 @@ const Index = () => {
         </div>
       </section>
 
-      <section className="py-6 px-4">
+      <section className="py-2 md:py-6 px-1 md:px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-6 px-4 md:px-0">
-            <h2 className="text-lg font-bold text-gray-900">Featured Books</h2>
-            <button onClick={handleExploreClick} className="text-[#D01E1E] text-sm font-medium">
+          <div className="flex justify-between items-center mb-2 md:mb-6 px-1 md:px-0">
+            <h2 className="text-base md:text-lg font-bold text-gray-900">Featured Books</h2>
+            <button onClick={handleExploreClick} className="text-[#D01E1E] text-xs md:text-sm font-medium">
               See All
             </button>
           </div>
@@ -351,11 +351,11 @@ const Index = () => {
         </div>
       </section>
 
-      <section className="py-6 px-4 bg-white">
+      <section className="py-2 md:py-6 px-1 md:px-4 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-6 px-4 md:px-0">
-            <h2 className="text-lg font-bold text-gray-900">Best Sellers</h2>
-            <button onClick={handleExploreClick} className="text-[#D01E1E] text-sm font-medium">
+          <div className="flex justify-between items-center mb-2 md:mb-6 px-1 md:px-0">
+            <h2 className="text-base md:text-lg font-bold text-gray-900">Best Sellers</h2>
+            <button onClick={handleExploreClick} className="text-[#D01E1E] text-xs md:text-sm font-medium">
               See All
             </button>
           </div>

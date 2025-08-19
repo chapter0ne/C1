@@ -4,36 +4,30 @@ import { api } from '@/utils/api';
 
 export const useCreateBook = () => {
   const queryClient = useQueryClient();
+  
   return useMutation({
-    mutationFn: async (data: any) => {
-      return await api.post('/books', data);
+    mutationFn: async (bookData: any) => {
+      return await api.post('/books', bookData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['published-books']);
+      queryClient.invalidateQueries({ queryKey: ['published-books'] });
+      queryClient.invalidateQueries({ queryKey: ['draft-books'] });
+      queryClient.invalidateQueries({ queryKey: ['all-books'] });
     },
   });
 };
 
 export const useUpdateBook = () => {
   const queryClient = useQueryClient();
+  
   return useMutation({
-    mutationFn: async ({ id, ...data }: any) => {
-      return await api.put(`/books/${id}`, data);
+    mutationFn: async ({ id, ...bookData }: { id: string; [key: string]: any }) => {
+      return await api.put(`/books/${id}`, bookData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['published-books']);
-    },
-  });
-};
-
-export const useDeleteBook = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      return await api.del(`/books/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['published-books']);
+      queryClient.invalidateQueries({ queryKey: ['published-books'] });
+      queryClient.invalidateQueries({ queryKey: ['draft-books'] });
+      queryClient.invalidateQueries({ queryKey: ['all-books'] });
     },
   });
 };

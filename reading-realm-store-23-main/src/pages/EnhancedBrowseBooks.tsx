@@ -394,7 +394,7 @@ const EnhancedBrowseBooks = () => {
 
       {/* Page Title Section */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Discover Books</h1>
             <p className="text-gray-600">Explore our curated collection of books</p>
@@ -404,9 +404,9 @@ const EnhancedBrowseBooks = () => {
 
       {/* Filter Section */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 md:py-6">
           {/* Mobile Filter Toggle */}
-          <div className="md:hidden mb-4">
+          <div className="md:hidden mb-2">
             <button
               onClick={() => setShowMobileFilters(!showMobileFilters)}
               className="flex items-center gap-2 bg-white border-2 border-gray-200 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#D01E1E] focus:border-[#D01E1E] transition-all duration-200 w-full"
@@ -418,8 +418,8 @@ const EnhancedBrowseBooks = () => {
           </div>
 
           {/* Filter Section */}
-          <div className={`bg-white rounded-xl p-6 shadow-sm border border-gray-100 ${showMobileFilters ? 'block' : 'hidden md:block'}`}>
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div className={`bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 ${showMobileFilters ? 'block' : 'hidden md:block'}`}>
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 md:gap-6">
               {/* Price Filter */}
               <div className="flex-shrink-0">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Price</h3>
@@ -465,7 +465,7 @@ const EnhancedBrowseBooks = () => {
       </div>
 
       {/* Category Sections with Max 20 Books */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-8 py-6 pb-20">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-3 md:px-8 py-3 md:py-6 pb-20">
         {selectedCategory === 'All' ? (
           // Show books organized into predefined category sections
           (() => {
@@ -487,9 +487,9 @@ const EnhancedBrowseBooks = () => {
                   if (books.length === 0) return null;
 
                   return (
-                    <div key={category} className="mb-12">
+                    <div key={category} className="mb-8 md:mb-12">
                       {/* Category Header */}
-                      <div className="flex justify-between items-center mb-6">
+                      <div className="flex justify-between items-center mb-3 md:mb-6">
                         <h2 className="text-2xl font-bold text-gray-900">{category}</h2>
                         <Link 
                           to={`/search?category=${encodeURIComponent(category)}`}
@@ -539,7 +539,7 @@ const EnhancedBrowseBooks = () => {
 
                 {/* Show uncategorized books in "Others" section */}
                 {uncategorizedBooks.length > 0 && (
-                  <div className="mb-12">
+                  <div className="mb-8 md:mb-12">
                     <div className="flex justify-between items-center mb-6">
                       <h2 className="text-2xl font-bold text-gray-900">Others</h2>
                       <Link 
@@ -603,9 +603,9 @@ const EnhancedBrowseBooks = () => {
             }
 
             return (
-              <div className="mb-12">
+              <div className="mb-8 md:mb-12">
                 {/* Category Header */}
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-3 md:mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">{selectedCategory}</h2>
                   <Link 
                     to={`/search?category=${encodeURIComponent(selectedCategory)}`}

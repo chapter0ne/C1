@@ -264,7 +264,7 @@ const Search = () => {
 
       {/* Search Section */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-6">
+        <div className="max-w-7xl mx-auto px-2 md:px-8 py-3 md:py-6">
           {/* Search Bar */}
           <div className="relative mb-3 md:mb-6">
             <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
@@ -305,7 +305,7 @@ const Search = () => {
       </div>
 
       {/* Books Grid */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-8 py-3 md:py-6 pb-20">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-2 md:px-8 py-3 md:py-6 pb-20">
         {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D01E1E] mx-auto"></div>

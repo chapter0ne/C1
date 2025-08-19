@@ -12,16 +12,22 @@ export const useUploadValidation = (
     // Check if we have either a new cover image or an existing cover image URL
     const hasCoverImage = formData.coverImage || coverImageUrl;
     
+    // Basic required fields only (no pricing validation in step 1)
     return formData.title.trim() !== '' && 
            formData.author.trim() !== '' && 
            formData.description.trim() !== '' && 
            formData.genre !== '' && 
            selectedTags.length > 0 &&
-           hasCoverImage; // Add cover image requirement
+           hasCoverImage;
   };
 
   const isStep2Valid = () => {
     return chapters.length > 0;
+  };
+
+  const isStep3Valid = () => {
+    // Pricing validation for step 3
+    return formData.isFree || (formData.price && Number(formData.price) > 0);
   };
 
   const isStepAccessible = (stepNumber: number) => {
@@ -34,6 +40,7 @@ export const useUploadValidation = (
   return {
     isStep1Valid,
     isStep2Valid,
+    isStep3Valid,
     isStepAccessible
   };
 };

@@ -11,6 +11,7 @@ export interface FormData {
   price: string;
   isFree: boolean;
   coverImage?: File;
+  coverImageUrl?: string; // Add this field for existing cover images
 }
 
 export const useUploadForm = () => {
@@ -102,7 +103,8 @@ export const useUploadForm = () => {
       isbn: book.isbn || '',
       price: book.price ? String(book.price) : '',
       isFree: book.isFree ?? book.is_free ?? false,
-      coverImage: undefined // Keep as undefined for new file uploads
+      coverImage: undefined, // Keep as undefined for new file uploads
+      coverImageUrl: existingCoverUrl || undefined // Set existing cover URL
     });
     
     setSelectedTags(tags);
@@ -125,7 +127,8 @@ export const useUploadForm = () => {
       isbn: "",
       price: "",
       isFree: false,
-      coverImage: undefined
+      coverImage: undefined,
+      coverImageUrl: undefined
     });
     setSelectedTags([]);
     setChapters([]);
