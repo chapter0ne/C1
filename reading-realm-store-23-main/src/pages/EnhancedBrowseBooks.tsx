@@ -10,6 +10,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import UniversalHeader from "@/components/UniversalHeader";
 import { ChevronDown, Filter, Star } from "lucide-react";
 import InfiniteBookCarousel from "@/components/InfiniteBookCarousel";
+import { Z_FIXED } from "zlib";
 
 const EnhancedBrowseBooks = () => {
   const [searchParams] = useSearchParams();

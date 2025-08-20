@@ -267,8 +267,8 @@ const Search = () => {
       {/* Desktop Header */}
       <UniversalHeader currentPage="search" />
 
-      {/* Search Section */}
-      <div className="bg-white border-b border-gray-200">
+      {/* Search Section - Sticky and Glassy */}
+      <div className="sticky top-16 z-40 backdrop-blur-xl bg-white/30 border-b border-white/20 shadow-2xl">
         <div className="max-w-7xl mx-auto px-2 md:px-8 py-3 md:py-6">
           {/* Search Bar */}
           <div className="relative mb-3 md:mb-6">
@@ -282,7 +282,7 @@ const Search = () => {
               placeholder="Search books, authors, genres..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full border-2 border-gray-200 rounded-xl pl-12 pr-6 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-[#D01E1E] focus:border-[#D01E1E] transition-all duration-200 shadow-sm"
+              className="w-full border border-white/30 rounded-xl pl-12 pr-6 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-[#D01E1E] focus:border-[#D01E1E] transition-all duration-300 ease-out shadow-2xl bg-white/40 backdrop-blur-xl text-gray-800 font-medium hover:bg-white/50 focus:bg-white/60"
             />
           </div>
 
@@ -310,7 +310,7 @@ const Search = () => {
       </div>
 
       {/* Books Grid */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-2 md:px-8 py-3 md:py-6 pb-20">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-2 md:px-8 py-3 md:py-6 pb-20" style={{ paddingTop: 'calc(120px + 2rem)' }}>
         {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D01E1E] mx-auto"></div>
