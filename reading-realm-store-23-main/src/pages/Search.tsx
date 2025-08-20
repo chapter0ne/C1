@@ -3,11 +3,12 @@ import { useUserData } from '@/contexts/UserDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useSearchParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import BookCard from "@/components/BookCard";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import UniversalHeader from "@/components/UniversalHeader";
 import { useToast } from "@/hooks/use-toast";
+import { useViewportHeight } from "@/hooks/useViewportHeight";
 
 const Search = () => {
   const { user } = useAuth();
@@ -16,10 +17,20 @@ const Search = () => {
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category');
   const [searchTerm, setSearchTerm] = useState('');
+  const { effectiveHeight } = useViewportHeight();
+  const [stickyTop, setStickyTop] = useState(64); // Default 64px (4rem)
 
   const isBookInLibrary = (bookId: string) => userLibrary.some((entry: any) => (entry.book?._id || entry.book?.id || entry._id || entry.id) === bookId);
   const isBookInWishlist = (bookId: string) => wishlist.some((item: any) => (item.book?._id || item.book?.id || item._id || item.id) === bookId);
   const isBookInCart = (bookId: string) => cart.items.some((item: any) => (item.book?._id || item.book?.id) === bookId);
+
+  // Update sticky positioning when viewport changes
+  useEffect(() => {
+    // Calculate sticky top position based on viewport height
+    // Account for navbar height (64px) and some buffer
+    const newStickyTop = Math.max(64, Math.min(80, effectiveHeight * 0.1));
+    setStickyTop(newStickyTop);
+  }, [effectiveHeight]);
 
   // Wishlist handlers for heart button functionality
   const handleAddToWishlist = async (bookId: string) => {
@@ -268,7 +279,10 @@ const Search = () => {
       <UniversalHeader currentPage="search" />
 
       {/* Search Section - Sticky and Glassy */}
-      <div className="sticky top-16 z-40 backdrop-blur-xl bg-white/30 border-b border-white/20 shadow-2xl">
+      <div 
+        className="sticky z-40 backdrop-blur-xl bg-white/30 border-b border-white/20 shadow-2xl"
+        style={{ top: `${stickyTop}px` }}
+      >
         <div className="max-w-7xl mx-auto px-2 md:px-8 py-3 md:py-6">
           {/* Search Bar */}
           <div className="relative mb-3 md:mb-6">
@@ -310,7 +324,10 @@ const Search = () => {
       </div>
 
       {/* Books Grid */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-2 md:px-8 py-3 md:py-6 pb-20" style={{ paddingTop: 'calc(40px + 0.5rem)' }}>
+      <div 
+        className="flex-1 max-w-7xl mx-auto w-full px-2 md:px-8 py-3 md:py-6 pb-20" 
+        style={{ paddingTop: `calc(${stickyTop + 40}px + 0.5rem)` }}
+      >
         {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D01E1E] mx-auto"></div>

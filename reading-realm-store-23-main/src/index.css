@@ -3,6 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import viewport utilities for dynamic browser toolbar handling */
+@import './styles/viewport.css';
+
 /* Custom animations */
 @keyframes fadeIn {
   from {

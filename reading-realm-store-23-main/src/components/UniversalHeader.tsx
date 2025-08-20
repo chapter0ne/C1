@@ -4,6 +4,8 @@ import { BookOpen, ShoppingCart, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { Button } from "@/components/ui/button";
+import { useViewportHeight } from "@/hooks/useViewportHeight";
+import { useState, useEffect } from "react";
 
 interface UniversalHeaderProps {
   currentPage?: string;
@@ -15,12 +17,23 @@ const UniversalHeader = ({ currentPage }: UniversalHeaderProps) => {
   const userId = user?.id || '';
   const { cart } = useCart(userId);
   const cartCount = cart?.items?.length || 0;
+  const { effectiveHeight } = useViewportHeight();
+  const [headerTop, setHeaderTop] = useState(0);
+
+  // Update header positioning when viewport changes
+  useEffect(() => {
+    // Ensure header stays at top even when viewport changes
+    setHeaderTop(0);
+  }, [effectiveHeight]);
 
   // Hide header on auth pages
   if (["/auth", "/login", "/signup"].includes(location.pathname)) return null;
 
   return (
-    <header className="backdrop-blur-xl bg-white/30 border-b border-white/20 shadow-2xl sticky top-0 z-50">
+    <header 
+      className="backdrop-blur-xl bg-white/30 border-b border-white/20 shadow-2xl sticky z-50"
+      style={{ top: `${headerTop}px` }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}

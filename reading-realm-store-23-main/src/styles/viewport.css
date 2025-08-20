@@ -1,0 +1,53 @@
+/* Viewport utilities for dynamic browser toolbar handling */
+
+/* Use CSS custom properties for dynamic viewport heights */
+:root {
+  --vh: 1vh;
+  --navbar-height: 64px;
+  --sticky-offset: calc(var(--navbar-height) + 16px);
+}
+
+/* Ensure sticky elements work properly with dynamic viewports */
+.sticky-viewport-aware {
+  position: sticky;
+  top: var(--sticky-offset);
+  z-index: 40;
+}
+
+/* Handle mobile viewport changes */
+@media (max-width: 768px) {
+  :root {
+    --sticky-offset: calc(var(--navbar-height) + 8px);
+  }
+}
+
+/* Ensure content flows properly under sticky elements */
+.content-under-sticky {
+  padding-top: calc(var(--sticky-offset) + 1rem);
+}
+
+/* Smooth transitions for viewport changes */
+.sticky-transition {
+  transition: top 0.3s ease-out;
+}
+
+/* Handle orientation changes */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --sticky-offset: calc(var(--navbar-height) + 4px);
+  }
+}
+
+/* Ensure proper stacking context */
+.sticky-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Handle Safari mobile viewport quirks */
+@supports (-webkit-touch-callout: none) {
+  .sticky-viewport-aware {
+    /* Safari-specific sticky positioning */
+    position: -webkit-sticky;
+  }
+}
