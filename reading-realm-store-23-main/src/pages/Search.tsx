@@ -26,10 +26,8 @@ const Search = () => {
 
   // Update sticky positioning when viewport changes
   useEffect(() => {
-    // Calculate sticky top position based on viewport height
-    // Account for navbar height (64px) and some buffer
-    const newStickyTop = Math.max(64, Math.min(80, effectiveHeight * 0.1));
-    setStickyTop(newStickyTop);
+    // Position search bar directly below navbar (64px height)
+    setStickyTop(64);
   }, [effectiveHeight]);
 
   // Wishlist handlers for heart button functionality
@@ -280,12 +278,12 @@ const Search = () => {
 
       {/* Search Section - Sticky and Glassy */}
       <div 
-        className="sticky z-40 backdrop-blur-xl bg-white/30 border-b border-white/20 shadow-2xl"
+        className="sticky z-40 backdrop-blur-xl bg-white/30 border shadow-2xl"
         style={{ top: `${stickyTop}px` }}
       >
-        <div className="max-w-7xl mx-auto px-2 md:px-8 py-3 md:py-6">
+        <div className="max-w-7xl mx-auto px-2 md:px-8 py-2 md:py-4">
           {/* Search Bar */}
-          <div className="relative mb-3 md:mb-6">
+          <div className="relative mb-2 md:mb-4">
             <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -301,7 +299,7 @@ const Search = () => {
           </div>
 
           {/* Page Title */}
-          <div className="text-center mb-3 md:mb-4">
+          <div className="text-center mb-2 md:mb-3">
             <h1 className="text-3xl font-bold text-gray-900 mb-2 hidden md:block">
               {category ? `${category} Books` : 'Find your favourite books'}
             </h1>
@@ -325,8 +323,8 @@ const Search = () => {
 
       {/* Books Grid */}
       <div 
-        className="flex-1 max-w-7xl mx-auto w-full px-2 md:px-8 py-3 md:py-6 pb-20" 
-        style={{ paddingTop: `calc(${stickyTop + 40}px + 0.5rem)` }}
+        className="flex-1 max-w-7xl mx-auto w-full px-2 md:px-8 py-2 md:py-4 pb-20" 
+        style={{ paddingTop: `calc(${stickyTop + 2}px)` }}
       >
         {isLoading ? (
           <div className="text-center py-12">
