@@ -1,5 +1,5 @@
 
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect } from 'react';
 import BookCard from './BookCard';
 import { Book } from '@/types/book';
 
@@ -33,35 +33,21 @@ const InfiniteBookCarousel = ({
     let startX = 0;
     let startY = 0;
     let isHorizontalScroll = false;
-    let scrollTimeout: NodeJS.Timeout;
-    let isScrolling = false;
 
     const handleScroll = () => {
-      // Throttle scroll events to improve performance
-      if (isScrolling) return;
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
+      const itemWidth = scrollContainer.firstElementChild?.clientWidth || 0;
+      const gap = 12; // gap-3 = 12px (increased from 8px)
+      const totalItemWidth = itemWidth + gap;
       
-      isScrolling = true;
-      clearTimeout(scrollTimeout);
-      
-      scrollTimeout = setTimeout(() => {
-        if (!scrollContainer) return;
-        
-        const { scrollLeft } = scrollContainer;
-        const itemWidth = scrollContainer.firstElementChild?.clientWidth || 0;
-        const gap = 12; // gap-3 = 12px
-        const totalItemWidth = itemWidth + gap;
-        
-        // When we've scrolled past the original items, jump back to the beginning
-        if (scrollLeft >= totalItemWidth * books.length) {
-          scrollContainer.scrollLeft = scrollLeft - totalItemWidth * books.length;
-        }
-        // When scrolling backwards past the beginning, jump to the end
-        else if (scrollLeft <= 0) {
-          scrollContainer.scrollLeft = scrollLeft + totalItemWidth * books.length;
-        }
-        
-        isScrolling = false;
-      }, 16); // ~60fps throttling
+      // When we've scrolled past the original items, jump back to the beginning
+      if (scrollLeft >= totalItemWidth * books.length) {
+        scrollContainer.scrollLeft = scrollLeft - totalItemWidth * books.length;
+      }
+      // When scrolling backwards past the beginning, jump to the end
+      else if (scrollLeft <= 0) {
+        scrollContainer.scrollLeft = scrollLeft + totalItemWidth * books.length;
+      }
     };
 
     // Non-interfering touch handling that allows vertical page scrolling
@@ -109,15 +95,11 @@ const InfiniteBookCarousel = ({
       scrollContainer.removeEventListener('touchstart', handleTouchStart);
       scrollContainer.removeEventListener('touchmove', handleTouchMove);
       scrollContainer.removeEventListener('touchend', handleTouchEnd);
-      clearTimeout(scrollTimeout);
     };
   }, [books.length, shouldEnableInfiniteScroll]);
 
   // Create triple array for infinite effect only when needed
-  // Use useMemo to prevent unnecessary array recreation
-  const tripleBooks = useMemo(() => {
-    return shouldEnableInfiniteScroll ? [...books, ...books, ...books] : books;
-  }, [books, shouldEnableInfiniteScroll]);
+  const tripleBooks = shouldEnableInfiniteScroll ? [...books, ...books, ...books] : books;
 
   return (
     <>

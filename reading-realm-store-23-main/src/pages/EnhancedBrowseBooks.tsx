@@ -11,6 +11,7 @@ import UniversalHeader from "@/components/UniversalHeader";
 import { ChevronDown, Filter, Star } from "lucide-react";
 import InfiniteBookCarousel from "@/components/InfiniteBookCarousel";
 import { Z_FIXED } from "zlib";
+import { navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 
 const EnhancedBrowseBooks = () => {
   const [searchParams] = useSearchParams();
@@ -697,7 +698,6 @@ const EnhancedBrowseBooks = () => {
           })()
         )}
       </div>
-
       {/* Mobile Bottom Nav */}
       <MobileBottomNav />
     </div>
@@ -706,3 +706,4 @@ const EnhancedBrowseBooks = () => {
 
 export default EnhancedBrowseBooks;
 
+navigationMenuTriggerStyle

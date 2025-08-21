@@ -47,7 +47,7 @@ const AppRoutes = () => {
   // Show minimal loading state
   if (loading) {
     return (
-      <div className="min-h-screen full-viewport-height flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -86,19 +86,17 @@ const AppRoutes = () => {
 };
 
 const App = () => (
-  <div className="full-viewport-height">
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <UserDataProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
-          </TooltipProvider>
-        </UserDataProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </div>
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <UserDataProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AppRoutes />
+        </TooltipProvider>
+      </UserDataProvider>
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 export default App;
