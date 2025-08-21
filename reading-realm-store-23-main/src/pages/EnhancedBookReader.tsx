@@ -132,6 +132,9 @@ const EnhancedBookReader = () => {
   const [isMobile, setIsMobile] = useState(false);
   // Add state for multi-page flow
   const [readerPage, setReaderPage] = useState(0); // 0: cover, 1: info, 2+: chapters
+  
+  // Debounced font size change to prevent rapid successive calls
+  const [fontChangeTimeout, setFontChangeTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Check mobile viewport
   useEffect(() => {
@@ -177,6 +180,16 @@ const EnhancedBookReader = () => {
   }, [currentChapter, chapters, scrollType, fontSize]);
 
   // Calculate pages using word-by-word DOM measurement for precise pagination
+  
+  // Cleanup font change timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (fontChangeTimeout) {
+        clearTimeout(fontChangeTimeout);
+      }
+    };
+  }, [fontChangeTimeout]);
+  
   const calculatePages = (content: string) => {
     if (!content) return 1;
     
@@ -575,18 +588,31 @@ const EnhancedBookReader = () => {
   };
 
   const handleFontSizeChange = (increment: boolean) => {
-    setFontSize(prev => {
-      const newSize = increment ? prev + 1 : prev - 1;
-      const finalSize = Math.max(12, Math.min(32, newSize));
-      localStorage.setItem('reading-font-size', finalSize.toString());
-      
-      // Reset to first page when font size changes to recalculate pagination
-      if (scrollType === 'flip') {
-        setCurrentPage(0);
-      }
-      
-      return finalSize;
-    });
+    // Clear any pending font change
+    if (fontChangeTimeout) {
+      clearTimeout(fontChangeTimeout);
+    }
+    
+    // Set new timeout for font change
+    const timeout = setTimeout(() => {
+      setFontSize(prev => {
+        const newSize = increment ? prev + 1 : prev - 1;
+        const finalSize = Math.max(12, Math.min(32, newSize));
+        localStorage.setItem('reading-font-size', finalSize.toString());
+        
+        // Only recalculate pagination if we're in flip mode and have content
+        if (scrollType === 'flip' && currentChapterData?.content) {
+          // Use requestAnimationFrame to defer the recalculation
+          requestAnimationFrame(() => {
+            setCurrentPage(0);
+          });
+        }
+        
+        return finalSize;
+      });
+    }, 100); // 100ms debounce
+    
+    setFontChangeTimeout(timeout);
   };
 
   const handleThemeChange = (theme: string) => {
@@ -599,7 +625,7 @@ const EnhancedBookReader = () => {
     localStorage.setItem('reading-font-family', font);
   };
 
-  // Get the content for the current page using DOM-based pagination that respects container bounds
+  // Get the content for the current page using optimized DOM-based pagination
   const getCurrentPageContent = () => {
     if (!currentChapterData || !currentChapterData.content) {
       return '';
@@ -627,7 +653,6 @@ const EnhancedBookReader = () => {
       const words = formatText(content).split(' ');
       const pages = [];
       let currentPageContent = '';
-      let pageIndex = 0;
       
       // Build all pages by adding words until they exceed container height
       for (let i = 0; i < words.length; i++) {

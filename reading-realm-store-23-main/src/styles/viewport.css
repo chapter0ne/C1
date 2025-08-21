@@ -3,8 +3,27 @@
 /* Use CSS custom properties for dynamic viewport heights */
 :root {
   --vh: 1vh;
+  --actual-vh: 100vh;
+  --document-height: 100vh;
+  --body-height: 100vh;
   --navbar-height: 64px;
   --sticky-offset: calc(var(--navbar-height) + 16px);
+}
+
+/* Ensure full page coverage without unwanted spacing */
+html, body {
+  height: 100%;
+  min-height: 100vh;
+  min-height: var(--actual-vh);
+  overflow-x: hidden;
+}
+
+/* Main app container should use full viewport height */
+#root {
+  min-height: 100vh;
+  min-height: var(--actual-vh);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Ensure sticky elements work properly with dynamic viewports */
@@ -18,6 +37,11 @@
 @media (max-width: 768px) {
   :root {
     --sticky-offset: calc(var(--navbar-height) + 8px);
+  }
+  
+  /* Ensure mobile pages use full available height */
+  .min-h-screen {
+    min-height: var(--actual-vh) !important;
   }
 }
 
@@ -50,4 +74,27 @@
     /* Safari-specific sticky positioning */
     position: -webkit-sticky;
   }
+  
+  /* Safari-specific height handling */
+  html, body {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Force full height usage for main content areas */
+.full-viewport-height {
+  min-height: var(--actual-vh);
+  height: var(--actual-vh);
+}
+
+/* Remove any default margins/padding that could cause spacing issues */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure content flows to the very edges */
+.content-full-width {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
 }

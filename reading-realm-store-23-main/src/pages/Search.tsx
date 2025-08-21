@@ -97,7 +97,7 @@ const Search = () => {
   // Ensure we have books before filtering
   if (!allBooks || allBooks.length === 0) {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen full-viewport-height bg-gray-50 flex flex-col">
       {/* Desktop Header */}
       <UniversalHeader currentPage="search" />
 
@@ -272,7 +272,7 @@ const Search = () => {
   const displayBooks = searchFilteredBooks;
   
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen full-viewport-height bg-gray-50 flex flex-col">
       {/* Desktop Header */}
       <UniversalHeader currentPage="search" />
 
