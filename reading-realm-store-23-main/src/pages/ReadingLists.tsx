@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Plus, Heart, Share, MessageCircle, BookOpen, Users } from "lucide-react";
 import UniversalHeader from "@/components/UniversalHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -182,6 +182,9 @@ const ReadingLists = () => {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Create New Reading List</DialogTitle>
+                    <DialogDescription>
+                      Create a new reading list to organize your favorite books and share them with others.
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>

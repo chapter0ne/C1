@@ -20,6 +20,7 @@ import MyProfile from "./pages/MyProfile";
 import Search from "./pages/Search";
 import AuthorPage from "./pages/AuthorPage";
 import Cart from "./pages/Cart";
+import PaymentVerification from "./pages/PaymentVerification";
 import Wishlist from "./pages/Wishlist";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -77,6 +78,7 @@ const AppRoutes = () => {
         <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
         <Route path="/author/:authorName" element={<ProtectedRoute><AuthorPage /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+        <Route path="/payment/verify" element={<ProtectedRoute><PaymentVerification /></ProtectedRoute>} />
         <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />

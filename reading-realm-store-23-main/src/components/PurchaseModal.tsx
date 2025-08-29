@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Book } from "@/types/book";
 import { CreditCard, BookOpen } from "lucide-react";
 
@@ -38,6 +38,12 @@ const PurchaseModal = ({ isOpen, onClose, book, onPurchaseSuccess }: PurchaseMod
           <DialogTitle className="text-xl font-bold text-gray-900">
             {book.isFree ? 'Add to Library' : 'Purchase Book'}
           </DialogTitle>
+          <DialogDescription>
+            {book.isFree 
+              ? "Add this free book to your personal library to start reading immediately."
+              : "Complete your purchase to add this book to your library and start reading."
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">

@@ -1,6 +1,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/utils/api';
+import { 
+  createPaystackTransaction, 
+  verifyPaystackTransaction, 
+  generateReference,
+  initializePaystack 
+} from '@/utils/paystack';
 
 export const useCart = (userId: string) => {
   const queryClient = useQueryClient();
@@ -8,7 +14,9 @@ export const useCart = (userId: string) => {
   const { data: cart = { items: [], totalAmount: 0 }, isLoading } = useQuery({
     queryKey: ['cart', userId],
     queryFn: async () => {
-      return await api.get('/cart');
+      const response = await api.get('/cart');
+      // Ensure we return the data property from the response
+      return response?.data || { items: [], totalAmount: 0 };
     },
     enabled: !!userId,
     // Return empty cart if no userId
@@ -52,11 +60,62 @@ export const useCart = (userId: string) => {
   });
 
   const checkout = useMutation({
-    mutationFn: async ({ paymentMethod, selectedItems }: { 
-      paymentMethod: string; 
-      selectedItems: string[] 
+    mutationFn: async ({ 
+      selectedItems, 
+      userEmail, 
+      totalAmount 
+    }: { 
+      selectedItems: string[];
+      userEmail: string;
+      totalAmount: number;
     }) => {
-      return await api.post('/cart/checkout', { paymentMethod, selectedItems });
+      // Initialize Paystack
+      initializePaystack();
+      
+      // Generate unique reference for this transaction
+      const reference = generateReference();
+      
+      // Create Paystack transaction
+      const paystackResponse = await createPaystackTransaction(
+        totalAmount,
+        userEmail,
+        selectedItems,
+        userId,
+        reference
+      );
+      
+      if (!paystackResponse.status) {
+        throw new Error(paystackResponse.message || 'Payment initialization failed');
+      }
+      
+      // Return Paystack response for redirect
+      return paystackResponse;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart', userId] });
+      queryClient.invalidateQueries({ queryKey: ['userLibrary', userId] });
+    },
+  });
+
+  const verifyPayment = useMutation({
+    mutationFn: async (reference: string) => {
+      // Verify payment with Paystack
+      const verificationResponse = await verifyPaystackTransaction(reference);
+      
+      if (!verificationResponse.status || verificationResponse.data.status !== 'success') {
+        throw new Error('Payment verification failed');
+      }
+      
+      // Process successful payment on backend
+      const backendResponse = await api.post('/cart/process-payment', {
+        reference,
+        bookIds: verificationResponse.data.metadata.bookIds,
+        userId: verificationResponse.data.metadata.userId,
+        amount: verificationResponse.data.amount / 100, // Convert from kobo to naira
+        paystackData: verificationResponse.data
+      });
+      
+      return backendResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart', userId] });
@@ -81,6 +140,7 @@ export const useCart = (userId: string) => {
     updateCartItemQuantity,
     clearCart,
     checkout,
+    verifyPayment,
     getCartSummary
   };
 };

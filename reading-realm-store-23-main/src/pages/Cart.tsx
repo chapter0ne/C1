@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, ShoppingCart, CreditCard, ArrowLeft, BookOpen } from "lucide-react";
+import { Trash2, ShoppingCart, CreditCard, ArrowLeft, BookOpen, CheckCircle } from "lucide-react";
 import UniversalHeader from "@/components/UniversalHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import BookCard from "@/components/BookCard";
@@ -21,8 +21,42 @@ const Cart = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
+  // Debug cart data
+  console.log('Cart data received:', cart);
+  console.log('Cart items:', cart?.items);
+  console.log('Cart items type:', typeof cart?.items);
+  console.log('Is cart.items array?', Array.isArray(cart?.items));
+
+  // Safety check for cart data
+  if (!cart || !Array.isArray(cart.items)) {
+    console.warn('Cart data is malformed:', cart);
+    // Return early with error state if cart is malformed
+    return (
+      <div className="min-h-screen bg-white">
+        <UniversalHeader currentPage="cart" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Cart Error</h3>
+            <p className="text-gray-600 mb-6">
+              There was an issue loading your cart. Please refresh the page.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-[#D01E1E] hover:bg-[#B01818]"
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </div>
+        <MobileBottomNav />
+      </div>
+    );
+  }
+
   // Calculate totals
-  const selectedBooks = cart.filter((item: any) => selectedItems.includes(item.book._id || item.book.id));
+  const cartItems = cart?.items || [];
+  const selectedBooks = cartItems.filter((item: any) => selectedItems.includes(item.book._id || item.book.id));
   const totalAmount = selectedBooks.reduce((sum: number, item: any) => {
     const book = item.book;
     return sum + (book.price * item.quantity);
@@ -38,7 +72,7 @@ const Cart = () => {
 
   const handleSelectAll = (selected: boolean) => {
     if (selected) {
-      setSelectedItems(cart.map((item: any) => item.book._id || item.book.id));
+      setSelectedItems(cartItems.map((item: any) => item.book._id || item.book.id));
     } else {
       setSelectedItems([]);
     }
@@ -87,23 +121,24 @@ const Cart = () => {
 
     setIsCheckingOut(true);
     try {
-      // Here you would integrate with Paystack
-      // For now, we'll simulate the checkout process
-      await checkout.mutateAsync({
-        paymentMethod: 'paystack',
-        selectedItems
+      // Initialize Paystack checkout
+      const paystackResponse = await checkout.mutateAsync({
+        selectedItems,
+        userEmail: user?.email || '',
+        totalAmount
       });
       
-      toast({
-        title: "Purchase Successful!",
-        description: "Your books have been added to your library.",
-      });
-      
-      setSelectedItems([]);
+      if (paystackResponse?.data?.authorization_url) {
+        // Redirect to Paystack payment page
+        window.location.href = paystackResponse.data.authorization_url;
+      } else {
+        throw new Error('Payment initialization failed');
+      }
     } catch (error) {
+      console.error('Checkout error:', error);
       toast({
         title: "Checkout Failed",
-        description: "There was an error processing your purchase. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error processing your purchase. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -141,11 +176,11 @@ const Cart = () => {
               <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
             </div>
             <p className="text-gray-600">
-              {cart.length} item{cart.length !== 1 ? 's' : ''} in your cart
+              {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart
             </p>
           </div>
 
-          {cart.length === 0 ? (
+          {cartItems.length === 0 ? (
             <div className="text-center py-12">
               <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Your cart is empty</h3>
@@ -166,17 +201,17 @@ const Cart = () => {
                 {/* Select All */}
                 <div className="flex items-center gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
                   <Checkbox
-                    checked={selectedItems.length === cart.length && cart.length > 0}
+                    checked={selectedItems.length === cartItems.length && cartItems.length > 0}
                     onCheckedChange={handleSelectAll}
                   />
                   <span className="text-sm font-medium">
-                    Select All ({cart.length} items)
+                    Select All ({cartItems.length} items)
                   </span>
                 </div>
 
                 {/* Cart Items List */}
                 <div className="space-y-4">
-                  {cart.map((item: any) => {
+                  {cartItems.map((item: any) => {
                     const book = item.book;
                     const isSelected = selectedItems.includes(book._id || book.id);
                     
@@ -317,6 +352,26 @@ const Cart = () => {
                     <p className="text-xs text-gray-500 mt-3 text-center">
                       Secure payment powered by Paystack
                     </p>
+                    
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center gap-2 text-blue-800">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="text-sm font-medium">Payment Methods</span>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Credit/Debit Cards, Bank Transfer, USSD, Mobile Money
+                      </p>
+                    </div>
+                    
+                    <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center gap-2 text-green-800">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm font-medium">Lifetime Access</span>
+                      </div>
+                      <p className="text-xs text-green-600 mt-1">
+                        Once purchased, you have permanent access to these books
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
