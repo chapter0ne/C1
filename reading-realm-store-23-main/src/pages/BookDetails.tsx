@@ -9,16 +9,17 @@ import { useBookState } from "@/hooks/useBookState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useState } from "react";
-import RatingModal from "@/components/RatingModal";
+
 import BookCard from "@/components/BookCard";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import UniversalHeader from "@/components/UniversalHeader";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/hooks/useCart";
-import { useUserData } from '@/contexts/UserDataContext';
+import { useUserData } from '@/contexts/OptimizedUserDataContext';
 import { getCoverImageUrl, hasCoverImage } from '@/utils/imageUtils';
 import { useToast } from "@/hooks/use-toast";
+import { useBookPurchaseStatus } from '@/hooks/usePurchaseHistory';
 
 const REVIEWS_PER_PAGE = 3;
 
@@ -30,18 +31,37 @@ const BookDetails = () => {
   const { userLibrary, wishlist, cart, removeFromLibrary, addToLibrary, addToWishlist, removeFromWishlist } = useUserData();
   const { addToCart } = useCart(user?.id || '');
   const { data: reviews = [], isLoading: reviewsLoading } = useReviews(id || '');
-  const [showReviewModal, setShowReviewModal] = useState(false);
+
   const [reviewPage, setReviewPage] = useState(1);
   const { toast } = useToast();
 
   // Library logic
-  const isInLibrary = userLibrary.some((entry: any) => (entry.book?._id || entry.book?.id || entry._id || entry.id) === (book?._id || book?.id));
+  const libraryEntry = userLibrary.find((entry: any) => (entry.book?._id || entry.book?.id || entry._id || entry.id) === (book?._id || book?.id));
+  const isInLibrary = !!libraryEntry;
   const isInWishlist = wishlist.some((item: any) => (item.book?._id || item._id || item.id) === (book?._id || book?.id));
+  
+  // Check if book is paid (not free)
+  const isPaidBook = !(book?.isFree === true || book?.is_free === true || book?.price === 0 || book?.price === '0' || book?.price === undefined || book?.price === null);
+  
+  // Check purchase history to see if book was ever purchased (non-blocking)
+  const { data: purchaseStatus } = useBookPurchaseStatus(user?.id || '', book?._id || '');
+  const isBookPurchased = purchaseStatus?.isBookPurchased || false;
+  
+  // Book is considered purchased if it's in library with purchased flag OR if it was ever purchased (even if removed)
+  const isPurchased = (isInLibrary && (libraryEntry?.isPurchased || libraryEntry?.purchased || false)) || isBookPurchased;
   
   console.log('BookDetails debug:', { 
     bookId: book?._id, 
     isInLibrary, 
+    isPurchased,
     isInWishlist,
+    libraryEntry,
+    userLibraryLength: userLibrary.length,
+    userLibraryEntries: userLibrary.map((entry: any) => ({
+      bookId: entry.book?._id || entry.book?.id || entry._id || entry.id,
+      bookTitle: entry.book?.title || 'No title',
+      isPurchased: entry?.isPurchased || entry?.purchased || false
+    })),
     addToLibrary: !!addToLibrary, 
     removeFromLibrary: !!removeFromLibrary,
     addToWishlist: !!addToWishlist,
@@ -83,6 +103,56 @@ const BookDetails = () => {
     }
   };
 
+  const handleBuyClick = async () => {
+    if (!user) {
+      toast({
+        title: "Please Login",
+        description: "You need to be logged in to purchase books.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!book) return;
+
+    try {
+      await addToCart.mutateAsync({ bookId: book._id || book.id, quantity: 1 });
+      toast({
+        title: "Added to Cart",
+        description: `${book.title} has been added to your cart.`,
+      });
+    } catch (error: any) {
+      console.error('Add to cart error:', error);
+      
+      // Show specific error message for different cases
+      if (error.message?.includes('already in your cart')) {
+        toast({
+          title: "Already in Cart",
+          description: "This book is already in your cart. You can only add one copy of each book.",
+          variant: "destructive"
+        });
+      } else if (error.message?.includes('already purchased')) {
+        toast({
+          title: "Already Purchased",
+          description: "You have already purchased this book. It should be in your library.",
+          variant: "destructive"
+        });
+      } else if (error.message?.includes('Free books cannot be added')) {
+        toast({
+          title: "Free Book",
+          description: "Free books cannot be added to cart. Add them directly to your library.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add book to cart. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   const handleLibraryAction = async () => {
     console.log('Library action clicked:', { bookId: book?._id, isInLibrary, isInWishlist });
     
@@ -96,6 +166,10 @@ const BookDetails = () => {
         console.log('Removing from library...');
         await removeFromLibrary.mutateAsync(book?._id || '');
         console.log('Removed from library successfully');
+        toast({
+          title: "Removed from Library",
+          description: `${book?.title} has been removed from your library.`,
+        });
       } else {
         console.log('Adding to library...');
         await addToLibrary.mutateAsync(book?._id || '');
@@ -206,38 +280,54 @@ const BookDetails = () => {
                     {isInLibrary ? 'Remove from Library' : 'Add to Library'}
                   </Button>
                 ) : (
-                  <Button className="w-full bg-[#D01E1E] hover:bg-[#B01818] text-lg font-semibold mb-3 rounded-lg" size="lg">
-                    Buy for {priceDisplay}
+                  <Button 
+                    className={`w-full text-lg font-semibold mb-3 rounded-lg ${
+                      isInLibrary || isPurchased
+                        ? 'bg-green-600 hover:bg-green-700 cursor-not-allowed' 
+                        : 'bg-[#D01E1E] hover:bg-[#B01818]'
+                    }`}
+                    size="lg"
+                    onClick={isInLibrary || isPurchased ? undefined : handleBuyClick}
+                    disabled={isInLibrary || isPurchased}
+                  >
+                    {isInLibrary 
+                      ? 'In Library'
+                      : isPurchased
+                        ? 'Purchased'
+                        : `Buy for ${priceDisplay}`
+                    }
                   </Button>
                 )}
                 <div className="flex w-full gap-2">
-                  {/* Wishlist Button: Disabled if book is in library */}
+                  {/* Wishlist Button: Disabled if book is in library or purchased */}
                   <Button 
                     variant="outline" 
                     size="lg" 
                     className={`flex-1 rounded-lg ${
-                      isInLibrary 
+                      isInLibrary || isPurchased
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                         : isInWishlist 
                           ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
                           : ''
                     }`}
-                    onClick={isInLibrary ? undefined : handleWishlistAction}
-                    disabled={isInLibrary}
-                    title={isInLibrary ? "Cannot modify wishlist for books in library" : ""}
+                    onClick={isInLibrary || isPurchased ? undefined : handleWishlistAction}
+                    disabled={isInLibrary || isPurchased}
+                    title={isInLibrary || isPurchased ? (isPurchased ? "Purchased book - Cannot modify wishlist" : "Cannot modify wishlist for books in library") : ""}
                   >
                     <Heart className={`w-4 h-4 mr-2 ${
-                      isInLibrary 
+                      isInLibrary || isPurchased
                         ? 'text-gray-400' 
                         : isInWishlist 
                           ? 'fill-red-500 text-red-500' 
                           : ''
                     }`} />
                     {isInLibrary 
-                      ? 'In Library' 
-                      : isInWishlist 
-                        ? 'Remove from Wishlist' 
-                        : 'Add to Wishlist'
+                      ? (isPurchased ? 'Purchased' : 'In Library')
+                      : isPurchased
+                        ? 'Purchased'
+                        : isInWishlist 
+                          ? 'Remove from Wishlist' 
+                          : 'Add to Wishlist'
                     }
                   </Button>
                 </div>
@@ -332,32 +422,18 @@ const BookDetails = () => {
               </div>
             </div>
 
-            {/* Mobile: Write a Review Button above reviews */}
-            <div className="block md:hidden mb-4">
-              <Button
-                onClick={() => setShowReviewModal(true)}
-                disabled={!canReview}
-                className={`w-full bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg ${canReview ? '' : 'opacity-50 cursor-not-allowed'}`}
-                title={canReview ? 'Write a review' : 'Add to your library to review'}
-              >
-                <Pencil className="w-4 h-4 mr-2" /> Write a Review
-              </Button>
+            {/* Review functionality permanently disabled */}
+            <div className="block md:hidden mb-4 text-center py-4">
+              <p className="text-gray-500 text-sm">Review functionality is currently disabled</p>
             </div>
 
             {/* Reviews Section - Extended for desktop */}
             <div className="bg-gray-50 rounded-xl shadow-inner p-4 md:min-h-[400px] md:max-h-[500px] min-h-[260px] max-h-[340px] overflow-y-auto flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-bold">Reviews</h2>
-                {/* Desktop: Write a Review Button */}
-                <div className="hidden md:block">
-                  <Button
-                    onClick={() => setShowReviewModal(true)}
-                    disabled={!canReview}
-                    className={`ml-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg ${canReview ? '' : 'opacity-50 cursor-not-allowed'}`}
-                    title={canReview ? 'Write a review' : 'Add to your library to review'}
-                  >
-                    <Pencil className="w-4 h-4 mr-2" /> Write a Review
-                  </Button>
+                {/* Review functionality permanently disabled */}
+                <div className="hidden md:block text-center py-2">
+                  <p className="text-gray-500 text-sm">Review functionality is currently disabled</p>
                 </div>
               </div>
               {reviewsLoading ? (
@@ -455,8 +531,8 @@ const BookDetails = () => {
 
       {/* Sticky Mobile Bottom Navigation */}
       <MobileBottomNav />
-      {/* Review Modal */}
-      <RatingModal isOpen={showReviewModal} onClose={() => setShowReviewModal(false)} book={book} canReview={canReview} />
+
+
     </div>
   );
 };

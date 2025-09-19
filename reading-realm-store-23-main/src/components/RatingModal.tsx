@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Star, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -68,7 +68,10 @@ const RatingModal = ({ isOpen, onClose, book, onRatingSubmit, canReview = false 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-                      <DialogTitle className="text-xl font-bold text-gray-900">Rating</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-gray-900">Rate This Book</DialogTitle>
+          <DialogDescription>
+            Share your thoughts and rate this book to help other readers
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -101,13 +104,10 @@ const RatingModal = ({ isOpen, onClose, book, onRatingSubmit, canReview = false 
 
 
 
-          <Button
-            onClick={handleSubmit}
-            className="w-full bg-[#D01E1E] hover:bg-[#B01818] py-3"
-            disabled={rating === 0 || isSubmitting}
-          >
-            {isSubmitting ? "Submitting..." : "Submit Rating"}
-          </Button>
+          {/* Review functionality permanently disabled */}
+          <div className="text-center py-4">
+            <p className="text-gray-500 text-sm">Review functionality is currently disabled</p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

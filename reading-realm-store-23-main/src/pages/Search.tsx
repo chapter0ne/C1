@@ -1,7 +1,9 @@
 import { useRandomBooks, useBooks } from '@/hooks/useBooks';
-import { useUserData } from '@/contexts/UserDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWishlist } from '@/hooks/useWishlist';
+import { useUserLibrary } from '@/hooks/useUserLibrary';
+import { useCart } from '@/hooks/useCart';
+import { useLibraryMutations } from '@/hooks/useLibraryMutations';
 import { useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import BookCard from "@/components/BookCard";
@@ -12,7 +14,11 @@ import { useViewportHeight } from "@/hooks/useViewportHeight";
 
 const Search = () => {
   const { user } = useAuth();
-  const { userLibrary, wishlist, cart, addToWishlist, removeFromWishlist, refetchWishlist } = useUserData();
+  const userId = user?.id || user?._id || '';
+  const { data: userLibrary = [] } = useUserLibrary(userId);
+  const { wishlist, addToWishlist, removeFromWishlist, refetch } = useWishlist(userId);
+  const { cart } = useCart(userId);
+  const { addToLibrary, removeFromLibrary } = useLibraryMutations(userId);
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category');
@@ -47,7 +53,7 @@ const Search = () => {
       const result = await addToWishlist.mutateAsync({ bookId });
       
       // Force refetch to update the UI state
-      await refetchWishlist();
+      await refetch();
       
       toast({
         title: "Added to Wishlist",
@@ -72,7 +78,7 @@ const Search = () => {
       const result = await removeFromWishlist.mutateAsync(bookId);
       
       // Force refetch to update the UI state
-      await refetchWishlist();
+      await refetch();
       
       toast({
         title: "Removed from Wishlist",

@@ -52,69 +52,103 @@ export const initializePaystack = () => {
   }
 };
 
-// Create Paystack transaction
+// Create Paystack transaction using frontend popup
 export const createPaystackTransaction = async (
   amount: number,
   email: string,
   bookIds: string[],
   userId: string,
-  reference: string
+  reference: string,
+  onSuccess?: (reference: string) => Promise<void>,
+  onError?: (error: string) => void
 ): Promise<PaystackResponse> => {
-  try {
-    const response = await fetch('https://api.paystack.co/transaction/initialize', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PAYSTACK_PUBLIC_KEY.replace('pk_', 'sk_')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: amount * 100, // Convert to kobo (smallest currency unit)
-        email,
-        reference,
-        callback_url: `${window.location.origin}/payment/verify`,
-        metadata: {
-          bookIds,
-          userId,
-          custom_fields: [
-            {
-              display_name: 'Books',
-              variable_name: 'books',
-              value: bookIds.join(', '),
-            },
-            {
-              display_name: 'User ID',
-              variable_name: 'user_id',
-              value: userId,
-            },
-          ],
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Paystack API error: ${response.status}`);
+  return new Promise((resolve, reject) => {
+    // Ensure Paystack is loaded
+    if (typeof window === 'undefined' || !(window as any).PaystackPop) {
+      reject(new Error('Paystack not loaded'));
+      return;
     }
 
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error creating Paystack transaction:', error);
-    throw new Error('Failed to initialize payment');
-  }
+    const paystackPop = (window as any).PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email,
+      amount: amount * 100, // Convert to kobo
+      ref: reference,
+      currency: 'NGN',
+      metadata: {
+        bookIds,
+        userId,
+        custom_fields: [
+          {
+            display_name: 'Books',
+            variable_name: 'books',
+            value: bookIds.join(', '),
+          },
+          {
+            display_name: 'User ID',
+            variable_name: 'user_id',
+            value: userId,
+          },
+        ],
+      },
+      callback: function(response: any) {
+        // Payment successful - call success handler asynchronously
+        if (onSuccess) {
+          onSuccess(response.reference).then(() => {
+            resolve({
+              status: true,
+              message: 'Payment successful',
+              data: {
+                authorization_url: '',
+                access_code: response.reference,
+                reference: response.reference,
+              },
+            });
+          }).catch((error) => {
+            console.error('Error in payment success callback:', error);
+            if (onError) {
+              onError(error instanceof Error ? error.message : 'Payment processing failed');
+            }
+            reject(error);
+          });
+        } else {
+          resolve({
+            status: true,
+            message: 'Payment successful',
+            data: {
+              authorization_url: '',
+              access_code: response.reference,
+              reference: response.reference,
+            },
+          });
+        }
+      },
+      onClose: function() {
+        // Payment cancelled
+        const errorMsg = 'Payment cancelled by user';
+        if (onError) {
+          onError(errorMsg);
+        }
+        reject(new Error(errorMsg));
+      },
+    });
+
+    paystackPop.openIframe();
+  });
 };
 
-// Verify Paystack transaction
+// Verify Paystack transaction through backend
 export const verifyPaystackTransaction = async (reference: string): Promise<PaystackVerificationResponse> => {
   try {
-    const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+    const response = await fetch(`/api/payments/verify/${reference}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${PAYSTACK_PUBLIC_KEY.replace('pk_', 'sk_')}`,
+        'Content-Type': 'application/json',
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Paystack verification error: ${response.status}`);
+      throw new Error(`Payment verification error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -139,3 +173,4 @@ export const formatAmount = (amount: number): string => {
     currency: 'NGN',
   }).format(amount);
 };
+

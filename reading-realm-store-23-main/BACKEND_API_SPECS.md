@@ -164,3 +164,4 @@ PAYSTACK_WEBHOOK_SECRET=whsec_...
 - Validate all input data
 - Rate limit payment endpoints
 - Monitor for suspicious activity
+

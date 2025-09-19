@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, ShoppingCart, CreditCard, ArrowLeft, BookOpen, CheckCircle } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowLeft, BookOpen } from "lucide-react";
 import UniversalHeader from "@/components/UniversalHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import BookCard from "@/components/BookCard";
@@ -16,7 +16,7 @@ import { Link } from "react-router-dom";
 const Cart = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { cart, isLoading, removeFromCart, updateCartItemQuantity, checkout } = useCart(user?.id || '');
+  const { cart, isLoading, removeFromCart, checkout } = useCart(user?.id || '');
   
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -59,7 +59,7 @@ const Cart = () => {
   const selectedBooks = cartItems.filter((item: any) => selectedItems.includes(item.book._id || item.book.id));
   const totalAmount = selectedBooks.reduce((sum: number, item: any) => {
     const book = item.book;
-    return sum + (book.price * item.quantity);
+    return sum + book.price; // Remove quantity multiplication since users can only buy one copy
   }, 0);
 
   const handleSelectItem = (itemId: string, selected: boolean) => {
@@ -95,19 +95,6 @@ const Cart = () => {
     }
   };
 
-  const handleUpdateQuantity = async (bookId: string, quantity: number) => {
-    if (quantity < 1) return;
-    
-    try {
-      await updateCartItemQuantity.mutateAsync({ bookId, quantity });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update quantity.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleCheckout = async () => {
     if (selectedItems.length === 0) {
@@ -119,28 +106,50 @@ const Cart = () => {
       return;
     }
 
+    if (!user?.email) {
+      toast({
+        title: "Email Required",
+        description: "Please ensure your account has a valid email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsCheckingOut(true);
     try {
-      // Initialize Paystack checkout
-      const paystackResponse = await checkout.mutateAsync({
+      // Initialize Paystack checkout with popup
+      await checkout.mutateAsync({
         selectedItems,
-        userEmail: user?.email || '',
+        userEmail: user.email,
         totalAmount
       });
       
-      if (paystackResponse?.data?.authorization_url) {
-        // Redirect to Paystack payment page
-        window.location.href = paystackResponse.data.authorization_url;
-      } else {
-        throw new Error('Payment initialization failed');
-      }
+      // Success message will be shown by the payment success callback
+      toast({
+        title: "Payment Successful!",
+        description: `${selectedItems.length} book(s) have been added to your library.`,
+      });
+      
+      // Clear selected items
+      setSelectedItems([]);
+      
     } catch (error) {
       console.error('Checkout error:', error);
-      toast({
-        title: "Checkout Failed",
-        description: error instanceof Error ? error.message : "There was an error processing your purchase. Please try again.",
-        variant: "destructive"
-      });
+      const errorMessage = error instanceof Error ? error.message : "There was an error processing your purchase. Please try again.";
+      
+      if (errorMessage.includes('cancelled')) {
+        toast({
+          title: "Payment Cancelled",
+          description: "You cancelled the payment process.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Payment Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsCheckingOut(false);
     }
@@ -195,9 +204,9 @@ const Cart = () => {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Cart Items */}
-              <div className="lg:col-span-2">
+            <div className="flex flex-col h-full">
+              {/* Cart Items - Scrollable */}
+              <div className="flex-1 overflow-y-auto pb-4">
                 {/* Select All */}
                 <div className="flex items-center gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
                   <Checkbox
@@ -232,8 +241,11 @@ const Cart = () => {
                             {/* Book Info */}
                             <div className="flex-1">
                               <div className="flex gap-4">
-                                {/* Book Cover */}
-                                <div className="w-16 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                {/* Book Cover - Clickable */}
+                                <Link 
+                                  to={`/book/${book._id || book.id}`}
+                                  className="w-16 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded flex items-center justify-center text-white text-xs font-bold flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                >
                                   {book.coverImageUrl ? (
                                     <img 
                                       src={book.coverImageUrl} 
@@ -243,48 +255,27 @@ const Cart = () => {
                                   ) : (
                                     book.title.charAt(0)
                                   )}
-                                </div>
+                                </Link>
 
                                 {/* Book Details */}
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
-                                    {book.title}
-                                  </h3>
-                                  <p className="text-sm text-gray-600 mb-2 truncate">by {book.author}</p>
+                                  <Link 
+                                    to={`/book/${book._id || book.id}`}
+                                    className="block cursor-pointer hover:text-[#D01E1E] transition-colors"
+                                  >
+                                    <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
+                                      {book.title}
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mb-2 truncate">by {book.author}</p>
+                                  </Link>
                                   <p className="text-lg font-bold text-[#D01E1E]">
                                     ₦{book.price?.toLocaleString() || '0'}
                                   </p>
                                 </div>
                               </div>
 
-                              {/* Quantity and Actions */}
-                              <div className="flex items-center justify-between mt-4">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-gray-600">Quantity:</span>
-                                  <div className="flex items-center border rounded">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleUpdateQuantity(book._id || book.id, item.quantity - 1)}
-                                      disabled={item.quantity <= 1}
-                                      className="px-2"
-                                    >
-                                      -
-                                    </Button>
-                                    <span className="px-3 py-1 text-sm font-medium">
-                                      {item.quantity}
-                                    </span>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleUpdateQuantity(book._id || book.id, item.quantity + 1)}
-                                      className="px-2"
-                                    >
-                                      +
-                                    </Button>
-                                  </div>
-                                </div>
-
+                              {/* Actions */}
+                              <div className="flex items-center justify-end mt-4">
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -303,13 +294,11 @@ const Cart = () => {
                 </div>
               </div>
 
-              {/* Order Summary */}
-              <div className="lg:col-span-1">
-                <Card className="sticky top-4">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
-                    
-                    <div className="space-y-3 mb-6">
+              {/* Order Summary - Fixed at Bottom */}
+              <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="space-y-3 mb-4">
                       <div className="flex justify-between text-sm">
                         <span>Selected Items:</span>
                         <span>{selectedItems.length}</span>
@@ -317,10 +306,6 @@ const Cart = () => {
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
                         <span>₦{totalAmount.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Processing Fee:</span>
-                        <span>₦0</span>
                       </div>
                       <div className="border-t pt-3">
                         <div className="flex justify-between font-semibold">
@@ -343,7 +328,7 @@ const Cart = () => {
                         </>
                       ) : (
                         <>
-                          <CreditCard className="w-4 h-4 mr-2" />
+                          <ShoppingCart className="w-4 h-4 mr-2" />
                           Checkout ({selectedItems.length} items)
                         </>
                       )}
@@ -352,26 +337,6 @@ const Cart = () => {
                     <p className="text-xs text-gray-500 mt-3 text-center">
                       Secure payment powered by Paystack
                     </p>
-                    
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                      <div className="flex items-center gap-2 text-blue-800">
-                        <CreditCard className="w-4 h-4" />
-                        <span className="text-sm font-medium">Payment Methods</span>
-                      </div>
-                      <p className="text-xs text-blue-600 mt-1">
-                        Credit/Debit Cards, Bank Transfer, USSD, Mobile Money
-                      </p>
-                    </div>
-                    
-                    <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                      <div className="flex items-center gap-2 text-green-800">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="text-sm font-medium">Lifetime Access</span>
-                      </div>
-                      <p className="text-xs text-green-600 mt-1">
-                        Once purchased, you have permanent access to these books
-                      </p>
-                    </div>
                   </CardContent>
                 </Card>
               </div>

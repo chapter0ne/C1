@@ -3,7 +3,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Book } from "@/types/book";
-import { CreditCard, BookOpen } from "lucide-react";
+import { CreditCard, BookOpen, ShoppingCart } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/hooks/useCart";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -14,21 +18,62 @@ interface PurchaseModalProps {
 
 const PurchaseModal = ({ isOpen, onClose, book, onPurchaseSuccess }: PurchaseModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const { user } = useAuth();
+  const { addToCart } = useCart(user?.id || '');
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handlePurchase = async () => {
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast({
+        title: "Please Login",
+        description: "You need to be logged in to add books to cart.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsProcessing(true);
     
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      onPurchaseSuccess(book.id);
+    try {
+      console.log('Adding to cart:', { bookId: book._id || book.id, bookTitle: book.title });
+      const result = await addToCart.mutateAsync({ bookId: book._id || book.id, quantity: 1 });
+      console.log('Add to cart result:', result);
+      toast({
+        title: "Added to Cart",
+        description: `${book.title} has been added to your cart.`,
+      });
       onClose();
-    }, 2000);
+    } catch (error) {
+      console.error('Add to cart error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add book to cart. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleFreeBook = () => {
-    onPurchaseSuccess(book.id);
+  const handleFreeBook = async () => {
+    if (!user) {
+      toast({
+        title: "Please Login",
+        description: "You need to be logged in to add books to library.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // For free books, add directly to library
+    onPurchaseSuccess(book._id || book.id);
     onClose();
+  };
+
+  const handleGoToCart = () => {
+    onClose();
+    navigate('/cart');
   };
 
   return (
@@ -74,21 +119,32 @@ const PurchaseModal = ({ isOpen, onClose, book, onPurchaseSuccess }: PurchaseMod
               Add to Library
             </Button>
           ) : (
-            <Button
-              onClick={handlePurchase}
-              disabled={isProcessing}
-              className="w-full bg-[#D01E1E] hover:bg-[#B01818] py-3"
-              size="lg"
-            >
-              <CreditCard className="w-4 h-4 mr-2" />
-              {isProcessing ? 'Processing...' : `Pay $${book.price}`}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={handleAddToCart}
+                disabled={isProcessing}
+                className="w-full bg-[#D01E1E] hover:bg-[#B01818] py-3"
+                size="lg"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                {isProcessing ? 'Adding...' : `Add to Cart - $${book.price}`}
+              </Button>
+              <Button
+                onClick={handleGoToCart}
+                variant="outline"
+                className="w-full py-3"
+                size="lg"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Go to Cart
+              </Button>
+            </div>
           )}
 
           <p className="text-xs text-gray-500 text-center">
             {book.isFree 
               ? "This book will be added to your library immediately."
-              : "Secure payment processed by Paystack. You'll have instant access after purchase."
+              : "Add to cart and proceed to checkout for secure payment via Paystack."
             }
           </p>
         </div>

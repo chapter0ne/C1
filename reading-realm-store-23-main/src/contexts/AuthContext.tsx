@@ -23,9 +23,12 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('🔍 AuthProvider: Component rendering');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  console.log('🔍 AuthProvider: State', { user: !!user, loading, isRefreshing });
 
   const refreshUser = async () => {
     const token = localStorage.getItem('token');
@@ -54,14 +57,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.log('🔍 AuthProvider: useEffect triggered');
     // Check for token immediately
     const token = localStorage.getItem('token');
+    console.log('🔍 AuthProvider: Token exists', !!token);
     if (!token) {
+      console.log('🔍 AuthProvider: No token, setting loading to false');
       setLoading(false);
       return;
     }
     
     // Only attempt to refresh if we have a token
+    console.log('🔍 AuthProvider: Token found, calling refreshUser');
     refreshUser();
   }, []);
 

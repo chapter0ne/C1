@@ -3,14 +3,14 @@ import { Link, useParams, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import RatingModal from "@/components/RatingModal";
+
 import { 
   BookOpen, 
   ArrowLeft, 
@@ -45,7 +45,6 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 import UniversalHeader from "@/components/UniversalHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { formatText } from "@/utils/textFormatter";
-
 // Theme configurations
 const themes = {
   'Morning Delight': {
@@ -116,7 +115,7 @@ const EnhancedBookReader = () => {
   const [scrollType] = useState<'scroll'>('scroll');
   const [currentPage, setCurrentPage] = useState(0);
   const [pagesPerChapter, setPagesPerChapter] = useState(1);
-  const [showRatingModal, setShowRatingModal] = useState(false);
+
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -691,18 +690,13 @@ const EnhancedBookReader = () => {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setShowRatingModal(true)} 
-                className="rounded-full transition-all duration-200 hover:scale-105"
+                onClick={() => {}} // Review functionality disabled
+                className="rounded-full transition-all duration-200 hover:scale-105 opacity-50 cursor-not-allowed"
                 style={{ 
                   color: isMidnight ? '#fff' : undefined,
                   backgroundColor: 'transparent'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = isMidnight ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
+                title="Review functionality disabled"
               >
                 <Star className="w-4 h-4" />
               </Button>
@@ -810,18 +804,13 @@ const EnhancedBookReader = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowRatingModal(true)}
-                  className="rounded-full transition-all duration-200 hover:scale-105"
+                  onClick={() => {}} // Review functionality disabled
+                  className="rounded-full transition-all duration-200 hover:scale-105 opacity-50 cursor-not-allowed"
                   style={{ 
                     color: isMidnight ? '#fff' : undefined,
                     backgroundColor: 'transparent'
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = isMidnight ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
+                  title="Review functionality disabled"
                 >
                   <Star className="w-4 h-4" />
                 </Button>
@@ -898,7 +887,11 @@ const EnhancedBookReader = () => {
         {/* Mobile Chapters Sheet */}
         {isMobile && (
           <Sheet open={showChapters} onOpenChange={setShowChapters}>
-            <SheetContent side="left" className="w-80 p-0">
+            <SheetContent side="left" className="w-80 p-0 overflow-y-auto max-h-screen">
+              <SheetTitle className="sr-only">Chapter Navigation</SheetTitle>
+              <SheetDescription className="sr-only">
+                Navigate through the book chapters to jump to different sections
+              </SheetDescription>
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Chapters</h3>
@@ -1066,7 +1059,8 @@ const EnhancedBookReader = () => {
                 </div>
 
                 {/* Reading Mode - Scroll Only */}
-                <div>
+                {/* HIDE: Flip/Scroll dropdown and flip feature for now, only show scroll mode as static text */}
+                {/* <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: currentTheme.text }}>Reading Mode</label>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium" style={{ color: currentTheme.text }}>Scroll</span>
@@ -1077,6 +1071,18 @@ const EnhancedBookReader = () => {
                   <p className="text-xs text-blue-500 mt-1">
                     Flip mode coming soon
                   </p>
+                </div> */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: currentTheme.text }}>Reading Mode</label>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium" style={{ color: currentTheme.text }}>Scroll</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Scroll through chapters vertically
+                  </p>
+                  {/* <p className="text-xs text-blue-500 mt-1">
+                    Flip mode coming soon
+                  </p> */}
                 </div>
 
                 {/* Reading Progress Management */}
@@ -1254,17 +1260,10 @@ const EnhancedBookReader = () => {
       {/* Mobile Bottom Nav */}
       {/* Hide MobileBottomNav in reader page */}
 
-      {/* Rating Modal */}
-      {showRatingModal && (
-      <RatingModal
-        isOpen={showRatingModal}
-        onClose={() => setShowRatingModal(false)}
-        book={book}
-          canReview={!!bookState.isInLibrary}
-      />
-      )}
+
     </div>
   );
 };
 
 export default EnhancedBookReader;
+

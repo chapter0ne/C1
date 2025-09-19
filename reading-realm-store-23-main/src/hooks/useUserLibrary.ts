@@ -6,7 +6,10 @@ export const useUserLibrary = (userId: string) => {
     queryKey: ['userLibrary', userId],
     queryFn: async () => {
       console.log('[useUserLibrary] Query running for userId:', userId);
-      if (!userId) return [];
+      if (!userId) {
+        console.log('[useUserLibrary] No userId, returning empty array');
+        return [];
+      }
       try {
         const result = await api.get('/user-library/my');
         console.log('[useUserLibrary] Data returned:', result);
@@ -19,6 +22,6 @@ export const useUserLibrary = (userId: string) => {
     enabled: !!userId,
     initialData: [],
     staleTime: 0,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }; 

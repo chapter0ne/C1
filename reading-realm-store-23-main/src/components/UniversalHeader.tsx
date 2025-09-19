@@ -17,6 +17,9 @@ const UniversalHeader = ({ currentPage }: UniversalHeaderProps) => {
   const userId = user?.id || '';
   const { cart } = useCart(userId);
   const cartCount = cart?.items?.length || 0;
+  
+  // Debug logging
+  console.log('UniversalHeader cart data:', { cart, cartCount, userId });
   const { effectiveHeight } = useViewportHeight();
   const [headerTop, setHeaderTop] = useState(0);
 

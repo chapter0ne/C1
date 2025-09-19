@@ -1,5 +1,5 @@
 
-import { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import BookCard from './BookCard';
 import { Book } from '@/types/book';
 
@@ -23,87 +23,120 @@ const InfiniteBookCarousel = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Only enable infinite scroll if we have at least 4 books
-  // This prevents weird repetition when categories have very few books
   const shouldEnableInfiniteScroll = books.length >= 4;
+  
+  // Create triple array for infinite effect
+  const tripleBooks = shouldEnableInfiniteScroll ? [...books, ...books, ...books] : books;
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer || books.length === 0 || !shouldEnableInfiniteScroll) return;
 
-    let startX = 0;
-    let startY = 0;
+    let isResetting = false;
+    let lastScrollLeft = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
     let isHorizontalScroll = false;
 
-    const handleScroll = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
-      const itemWidth = scrollContainer.firstElementChild?.clientWidth || 0;
-      const gap = 12; // gap-3 = 12px (increased from 8px)
-      const totalItemWidth = itemWidth + gap;
-      
-      // When we've scrolled past the original items, jump back to the beginning
-      if (scrollLeft >= totalItemWidth * books.length) {
-        scrollContainer.scrollLeft = scrollLeft - totalItemWidth * books.length;
-      }
-      // When scrolling backwards past the beginning, jump to the end
-      else if (scrollLeft <= 0) {
-        scrollContainer.scrollLeft = scrollLeft + totalItemWidth * books.length;
-      }
-    };
-
-    // Non-interfering touch handling that allows vertical page scrolling
     const handleTouchStart = (e: TouchEvent) => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
       isHorizontalScroll = false;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!startX || !startY) return;
+      if (e.touches.length !== 1) return;
       
-      const currentX = e.touches[0].clientX;
-      const currentY = e.touches[0].clientY;
-      const deltaX = Math.abs(currentX - startX);
-      const deltaY = Math.abs(currentY - startY);
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartX);
+      const deltaY = Math.abs(touch.clientY - touchStartY);
       
-      // Determine scroll direction with a higher threshold to avoid interference
-      if (!isHorizontalScroll && deltaX > deltaY && deltaX > 25) {
-        // Clear horizontal scrolling - mark as horizontal
+      // Determine if this is a horizontal scroll gesture
+      if (deltaX > deltaY && deltaX > 10) {
         isHorizontalScroll = true;
-      } else if (!isHorizontalScroll && deltaY > deltaX && deltaY > 25) {
-        // Clear vertical scrolling - mark as vertical
-        isHorizontalScroll = true;
+      } else if (deltaY > deltaX && deltaY > 10) {
+        isHorizontalScroll = false;
       }
       
-      // Never prevent default - let the browser handle scrolling naturally
-      // This ensures vertical page scrolling always works
+      // If it's not a horizontal scroll, allow vertical scrolling
+      if (!isHorizontalScroll) {
+        return;
+      }
+      
+      // Prevent default only for horizontal scrolling
+      e.preventDefault();
     };
 
-    const handleTouchEnd = () => {
-      startX = 0;
-      startY = 0;
-      isHorizontalScroll = false;
+    const handleScroll = () => {
+      if (isResetting) return;
+      
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
+      const itemWidth = scrollContainer.firstElementChild?.clientWidth || 0;
+      const gap = 12; // gap-3 = 12px
+      const totalItemWidth = itemWidth + gap;
+      const singleSetWidth = totalItemWidth * books.length;
+      
+      // Only reset when we're completely past the visible content
+      // This prevents the "pulling" effect by only resetting when user has scrolled far beyond what's visible
+      if (scrollLeft >= scrollWidth - clientWidth - 50) {
+        isResetting = true;
+        // Jump back to the middle set without animation
+        scrollContainer.style.scrollBehavior = 'auto';
+        scrollContainer.scrollLeft = scrollLeft - singleSetWidth;
+        // Restore smooth scrolling after a brief delay
+        setTimeout(() => {
+          scrollContainer.style.scrollBehavior = 'smooth';
+          isResetting = false;
+        }, 150);
+      } else if (scrollLeft <= 50) {
+        isResetting = true;
+        // Jump to the middle set without animation
+        scrollContainer.style.scrollBehavior = 'auto';
+        scrollContainer.scrollLeft = scrollLeft + singleSetWidth;
+        // Restore smooth scrolling after a brief delay
+        setTimeout(() => {
+          scrollContainer.style.scrollBehavior = 'smooth';
+          isResetting = false;
+        }, 150);
+      }
+      
+      lastScrollLeft = scrollLeft;
     };
 
-    scrollContainer.addEventListener('scroll', handleScroll);
-    // Use passive: true to ensure we never interfere with scrolling
+    // Add scroll listener with throttling
+    let scrollTimeout: NodeJS.Timeout;
+    const throttledHandleScroll = () => {
+      if (scrollTimeout) return;
+      scrollTimeout = setTimeout(() => {
+        handleScroll();
+        scrollTimeout = null as any;
+      }, 16); // ~60fps
+    };
+
+    scrollContainer.addEventListener('scroll', throttledHandleScroll, { passive: true });
     scrollContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-    scrollContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
-    scrollContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+    scrollContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
+    // Initialize position to the middle set
+    const itemWidth = scrollContainer.firstElementChild?.clientWidth || 0;
+    const gap = 12;
+    const totalItemWidth = itemWidth + gap;
+    scrollContainer.scrollLeft = totalItemWidth * books.length;
     
     return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll);
+      scrollContainer.removeEventListener('scroll', throttledHandleScroll);
       scrollContainer.removeEventListener('touchstart', handleTouchStart);
       scrollContainer.removeEventListener('touchmove', handleTouchMove);
-      scrollContainer.removeEventListener('touchend', handleTouchEnd);
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
     };
   }, [books.length, shouldEnableInfiniteScroll]);
 
-  // Create triple array for infinite effect only when needed
-  const tripleBooks = shouldEnableInfiniteScroll ? [...books, ...books, ...books] : books;
-
   return (
     <>
-      {/* Mobile: Conditional infinite horizontal scroll or regular grid */}
+      {/* Mobile: Infinite scroll or regular scroll */}
       <div className="md:hidden">
         {shouldEnableInfiniteScroll ? (
           // Infinite scroll for categories with 4+ books
@@ -111,16 +144,10 @@ const InfiniteBookCarousel = ({
             ref={scrollRef}
             className="flex gap-3 overflow-x-auto pb-1 px-2 scrollbar-hide"
             style={{ 
-              scrollBehavior: 'auto',
-              // Allow natural touch behavior without interfering with page scrolling
-              touchAction: 'auto',
-              overscrollBehavior: 'auto',
-              // Ensure the carousel doesn't capture all touch events
-              pointerEvents: 'auto',
-              // Ensure smooth scrolling
+              scrollBehavior: 'smooth',
+              touchAction: 'manipulation',
+              overscrollBehavior: 'contain',
               WebkitOverflowScrolling: 'touch',
-              // Remove properties that might interfere with page scrolling
-              isolation: 'auto'
             }}
           >
             {tripleBooks.map((book, index) => (
@@ -139,10 +166,18 @@ const InfiniteBookCarousel = ({
             ))}
           </div>
         ) : (
-          // Regular grid for categories with fewer than 4 books (prevents repetition)
-          <div className="grid grid-cols-3 gap-3 px-2">
+          // Regular horizontal scroll for categories with fewer books
+          <div 
+            className="flex gap-3 overflow-x-auto pb-1 px-2 scrollbar-hide scroll-smooth"
+            style={{ 
+              scrollBehavior: 'smooth',
+              touchAction: 'manipulation',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
             {books.map((book, index) => (
-              <div key={`${book._id || book.id}-${index}`}>
+              <div key={`${book._id || book.id}-${index}`} className="flex-shrink-0">
                 <BookCard
                   book={book}
                   showActionButtons={false}
@@ -160,7 +195,7 @@ const InfiniteBookCarousel = ({
       </div>
 
       {/* Desktop: Flexbox layout that wraps naturally */}
-      <div className="hidden md:flex md:flex-wrap gap-4 lg:gap-6">
+      <div className="hidden md:flex md:flex-wrap gap-4 lg:gap-6 transition-all duration-300 ease-in-out">
         {books.map((book, index) => (
           <div key={`${book._id || book.id}-${index}`}>
             <BookCard

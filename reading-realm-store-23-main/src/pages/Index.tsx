@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBooks } from '@/hooks/useBooks';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useBestsellers, useEditorPicks } from '@/hooks/useFeaturedBooks';
+import { useUserData } from '@/contexts/OptimizedUserDataContext';
 
 // Skeleton loader for book carousels
 const BookCarouselSkeleton = () => (
@@ -37,6 +38,12 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: books = [], isLoading: booksLoading, error: booksError } = useBooks();
+  const { data: bestsellers = [], isLoading: bestsellersLoading } = useBestsellers();
+  const { data: editorPicks = [], isLoading: editorPicksLoading } = useEditorPicks();
+  
+  // Use books data for featured sections until backend is deployed
+  const featuredBestsellers = bestsellers.length > 0 ? bestsellers : books.slice(0, 6);
+  const featuredEditorPicks = editorPicks.length > 0 ? editorPicks : books.slice(6, 12);
   const { userLibrary, wishlist, cart, addToWishlist, removeFromWishlist } = useUserData();
 
   // Debug logging
@@ -275,10 +282,10 @@ const Index = () => {
                   variant={index === 0 ? "default" : "outline"}
                   size="sm"
                   onClick={() => index > 0 && handleCategoryClick(category)}
-                  className={`whitespace-nowrap rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs font-medium ${
+                  className={`whitespace-nowrap rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs font-medium transition-all duration-300 ease-in-out transform hover:scale-105 ${
                     index === 0 
-                      ? "bg-[#D01E1E] text-white hover:bg-[#B01818]" 
-                      : "border-gray-200 text-gray-600 hover:border-[#D01E1E] hover:text-white hover:bg-[#D01E1E]"
+                      ? "bg-[#D01E1E] text-white hover:bg-[#B01818] shadow-lg" 
+                      : "border-gray-200 text-gray-600 hover:border-[#D01E1E] hover:text-white hover:bg-[#D01E1E] hover:shadow-md"
                   }`}
                 >
                   {category}
@@ -295,10 +302,10 @@ const Index = () => {
                 variant={index === 0 ? "default" : "outline"}
                 size="sm"
                 onClick={() => index > 0 && handleCategoryClick(category)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium ${
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium transition-all duration-300 ease-in-out transform hover:scale-105 ${
                   index === 0 
-                    ? "bg-[#D01E1E] text-white hover:bg-[#B01818]" 
-                    : "border-gray-200 text-gray-600 hover:border-[#D01E1E] hover:text-white hover:bg-[#D01E1E]"
+                    ? "bg-[#D01E1E] text-white hover:bg-[#B01818] shadow-lg" 
+                    : "border-gray-200 text-gray-600 hover:border-[#D01E1E] hover:text-white hover:bg-[#D01E1E] hover:shadow-md"
                 }`}
               >
                 {category}
@@ -317,9 +324,9 @@ const Index = () => {
             </button>
           </div>
           <div className="lg:hidden">
-            {booksLoading ? <BookCarouselSkeleton /> : (
+            {editorPicksLoading ? <BookCarouselSkeleton /> : (
             <InfiniteBookCarousel 
-              books={books}
+              books={featuredEditorPicks.map(fb => fb.book || fb).filter(Boolean)}
               getBookState={(book) => ({
                 isInLibrary: isBookInLibrary(book._id),
                 isInWishlist: isBookInWishlist(book._id),
@@ -331,21 +338,25 @@ const Index = () => {
             )}
           </div>
           <div className="hidden lg:flex lg:flex-wrap gap-4 lg:gap-6">
-            {booksLoading ? (
+            {editorPicksLoading ? (
               Array.from({ length: 12 }).map((_, i) => <div key={i} className="w-full h-64 bg-gray-200 animate-pulse rounded-lg" />)
             ) : (
-              books.slice(0, 12).map((book) => (
-                <BookCard 
-                  key={book._id}
-                  book={book}
-                  variant="compact"
-                  showActionButtons={false}
-                  isInWishlist={isBookInWishlist(book._id)}
-                  isInLibrary={isBookInLibrary(book._id)}
-                  onAddToWishlist={handleAddToWishlist}
-                  onRemoveFromWishlist={handleRemoveFromWishlist}
-                />
-              ))
+              featuredEditorPicks.slice(0, 12).map((featuredBook) => {
+                const book = featuredBook.book || featuredBook;
+                if (!book) return null;
+                return (
+                  <BookCard 
+                    key={book._id}
+                    book={book}
+                    variant="compact"
+                    showActionButtons={false}
+                    isInWishlist={isBookInWishlist(book._id)}
+                    isInLibrary={isBookInLibrary(book._id)}
+                    onAddToWishlist={handleAddToWishlist}
+                    onRemoveFromWishlist={handleRemoveFromWishlist}
+                  />
+                );
+              })
             )}
           </div>
         </div>
@@ -360,9 +371,9 @@ const Index = () => {
             </button>
           </div>
           <div className="lg:hidden">
-            {booksLoading ? <BookCarouselSkeleton /> : (
+            {bestsellersLoading ? <BookCarouselSkeleton /> : (
             <InfiniteBookCarousel 
-              books={books}
+              books={featuredBestsellers.map(fb => fb.book || fb).filter(Boolean)}
               getBookState={(book) => ({
                 isInLibrary: isBookInLibrary(book._id),
                 isInWishlist: isBookInWishlist(book._id),
@@ -374,21 +385,25 @@ const Index = () => {
             )}
           </div>
           <div className="hidden lg:flex lg:flex-wrap gap-4 lg:gap-6">
-            {booksLoading ? (
+            {bestsellersLoading ? (
               Array.from({ length: 12 }).map((_, i) => <div key={i} className="w-full h-64 bg-gray-200 animate-pulse rounded-lg" />)
             ) : (
-              books.slice(0, 12).map((book) => (
-                <BookCard 
-                  key={book._id}
-                  book={book}
-                  variant="compact"
-                  showActionButtons={false}
-                  isInWishlist={isBookInWishlist(book._id)}
-                  isInLibrary={isBookInLibrary(book._id)}
-                  onAddToWishlist={handleAddToWishlist}
-                  onRemoveFromWishlist={handleRemoveFromWishlist}
-                />
-              ))
+              featuredBestsellers.slice(0, 12).map((featuredBook) => {
+                const book = featuredBook.book || featuredBook;
+                if (!book) return null;
+                return (
+                  <BookCard 
+                    key={book._id}
+                    book={book}
+                    variant="compact"
+                    showActionButtons={false}
+                    isInWishlist={isBookInWishlist(book._id)}
+                    isInLibrary={isBookInLibrary(book._id)}
+                    onAddToWishlist={handleAddToWishlist}
+                    onRemoveFromWishlist={handleRemoveFromWishlist}
+                  />
+                );
+              })
             )}
           </div>
         </div>

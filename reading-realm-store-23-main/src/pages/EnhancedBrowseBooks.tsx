@@ -3,7 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBooks } from '@/hooks/useBooks';
 import { useToast } from "@/hooks/use-toast";
-import { useUserData } from '@/contexts/UserDataContext';
+import { useUserData } from '@/contexts/OptimizedUserDataContext';
 import { useWishlist } from '@/hooks/useWishlist';
 import BookCard from '@/components/BookCard';
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -705,5 +705,4 @@ const EnhancedBrowseBooks = () => {
 };
 
 export default EnhancedBrowseBooks;
-
 navigationMenuTriggerStyle

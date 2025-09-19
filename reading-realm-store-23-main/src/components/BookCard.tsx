@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getCoverImageUrl, hasCoverImage } from "@/utils/imageUtils";
 import { useToast } from "@/hooks/use-toast";
+import React from "react";
 
 interface BookCardProps {
   book: Book;
@@ -23,6 +24,8 @@ interface BookCardProps {
   isInLibrary?: boolean;
   isInCart?: boolean;
   showHeart?: boolean; // New prop to control heart visibility
+  isPurchased?: boolean; // New prop to indicate if book is purchased
+  isPaidBook?: boolean; // New prop to indicate if book is paid (not free)
 }
 
 const BookCard = ({ 
@@ -40,7 +43,9 @@ const BookCard = ({
   isInWishlist = false,
   isInLibrary = false,
   isInCart = false,
-  showHeart = true
+  showHeart = true,
+  isPurchased = false,
+  isPaidBook = false
 }: BookCardProps) => {
   const { toast } = useToast();
   // Guard against missing book or title
@@ -137,7 +142,13 @@ const BookCard = ({
           {/* Book Cover */}
           <div className="w-12 h-16 bg-gradient-to-br from-slate-800 to-slate-900 rounded flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mr-3">
             {hasCoverImage(book) ? (
-              <img src={getCoverImageUrl(book)!} alt={book.title} className="w-full h-full object-cover rounded" />
+              <img 
+                src={getCoverImageUrl(book)!} 
+                alt={book.title} 
+                className="w-full h-full object-cover rounded"
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
               book.title.charAt(0)
             )}
@@ -148,7 +159,7 @@ const BookCard = ({
             <p className="text-xs text-gray-600 truncate">{book.author}</p>
             <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
               <div className="flex items-center gap-1">
-                <Star className="w-3 h-3 text-yellow-400" />
+                <Star className="w-3 h-3 text-black fill-black" />
                 <span>{typeof book.rating === 'number' ? book.rating.toFixed(1) : '0.0'}</span>
               </div>
               <span className={`font-semibold ${book.isFree ? 'text-green-600' : 'text-gray-900'}`}>
@@ -201,6 +212,8 @@ const BookCard = ({
                 src={getCoverImageUrl(book)!} 
                 alt={book.title}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div className="text-center z-10 p-3">
@@ -208,8 +221,8 @@ const BookCard = ({
                 <h3 className="font-bold text-xs leading-tight">{book?.title ? book.title.split(' ').slice(1).join(' ') : ''}</h3>
               </div>
             )}
-            {/* X Remove from Library (top right) */}
-            {isInLibrary && onRemoveFromLibrary && (
+            {/* X Remove from Library (top right) - Only show for free books */}
+            {isInLibrary && onRemoveFromLibrary && !isPaidBook && (
               <button
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onRemoveFromLibrary(book._id); }}
                 className={`absolute top-1 right-1 z-20 bg-red-600 text-white rounded-full flex items-center justify-center shadow hover:bg-red-700 ${
@@ -219,6 +232,17 @@ const BookCard = ({
               >
                 ×
               </button>
+            )}
+            {/* Purchased indicator (top right) - Only for paid books */}
+            {isInLibrary && isPaidBook && (
+              <div
+                className={`absolute top-1 right-1 z-20 bg-green-600 text-white rounded-full flex items-center justify-center shadow ${
+                  variant === 'compact' ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'
+                }`}
+                title="Purchased - Cannot be removed"
+              >
+                ✓
+              </div>
             )}
             {/* Wishlist Heart - Shows wishlist state and functions as wishlist button */}
             {/* Only show heart button if book is NOT in library */}

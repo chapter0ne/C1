@@ -9,6 +9,10 @@ export const useWishlist = (userId: string) => {
     queryKey: ['wishlist', userId],
     queryFn: async () => {
       console.log('Fetching wishlist for userId:', userId);
+      if (!userId) {
+        console.log('No userId, returning empty wishlist');
+        return { wishlist: [] };
+      }
       const response = await api.get('/wishlist');
       console.log('Wishlist API response:', response);
       return response;
@@ -17,7 +21,8 @@ export const useWishlist = (userId: string) => {
     // Return empty object with wishlist array if no userId
     initialData: { wishlist: [] },
     retry: 1,
-    staleTime: 0 // Always fetch fresh data
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: false
   });
 
   // Log errors if they occur

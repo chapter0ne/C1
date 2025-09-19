@@ -26,18 +26,21 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import BookDetails from "./pages/BookDetails";
 import { useAuth } from '@/contexts/AuthContext';
-import { UserDataProvider } from '@/contexts/UserDataContext';
+import { OptimizedUserDataProvider } from '@/contexts/OptimizedUserDataContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2,
-      staleTime: 10 * 60 * 1000,
+      retry: 1, // Faster failure
+      staleTime: 15 * 60 * 1000, // 15 minutes - longer cache
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
+      gcTime: 30 * 60 * 1000, // 30 minutes garbage collection time
+      retryDelay: 1000, // Quick retry
     },
     mutations: {
-      retry: 1
+      retry: 1,
+      retryDelay: 1000
     }
   },
 });
@@ -87,18 +90,20 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <UserDataProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AppRoutes />
-        </TooltipProvider>
-      </UserDataProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <OptimizedUserDataProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <AppRoutes />
+          </TooltipProvider>
+        </OptimizedUserDataProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

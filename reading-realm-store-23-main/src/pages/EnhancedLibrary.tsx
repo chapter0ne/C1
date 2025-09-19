@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useBooks } from '@/hooks/useBooks';
-import { useUserData } from '@/contexts/UserDataContext';
+import { useUserData } from '@/contexts/OptimizedUserDataContext';
 import { useReadingLists } from '@/hooks/useReadingLists';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,27 +90,21 @@ const EnhancedLibrary = () => {
   });
 
   // Remove from library handler
-  const handleRemoveFromLibrary = (bookId: string) => {
-    removeFromLibrary.mutate(bookId, {
-      onSuccess: () => {
-        toast({ title: 'Removed from Library', description: 'Book has been removed from your library.' });
-      },
-      onError: () => {
-        toast({ title: 'Error', description: 'Failed to remove book from library.', variant: 'destructive' });
-      }
-    });
+  const handleRemoveFromLibrary = async (bookId: string) => {
+    try {
+      await removeFromLibrary.mutateAsync(bookId);
+    } catch (error) {
+      console.error('Remove from library error:', error);
+    }
   };
 
   // Remove from wishlist handler
-  const handleRemoveFromWishlist = (bookId: string) => {
-    removeFromWishlist.mutate(bookId, {
-      onSuccess: () => {
-        toast({ title: 'Removed from Wishlist', description: 'Book has been removed from your wishlist.' });
-      },
-      onError: () => {
-        toast({ title: 'Error', description: 'Failed to remove book from wishlist.', variant: 'destructive' });
-      }
-    });
+  const handleRemoveFromWishlist = async (bookId: string) => {
+    try {
+      await removeFromWishlist.mutateAsync(bookId);
+    } catch (error) {
+      console.error('Remove from wishlist error:', error);
+    }
   };
 
   return (
@@ -197,6 +191,8 @@ const EnhancedLibrary = () => {
                     {filteredLibraryBooks.map((entry: any) => {
                       const book = entry.book || entry;
                       if (!book || !book.title) return null;
+                      const isPurchased = entry?.isPurchased || entry?.purchased || false;
+                      const isPaidBook = !(book?.isFree === true || book?.is_free === true || book?.price === 0 || book?.price === '0' || book?.price === undefined || book?.price === null);
 
                       return (
                         <BookCard
@@ -205,6 +201,8 @@ const EnhancedLibrary = () => {
                           variant="compact"
                           showActionButtons={false}
                           isInLibrary={true}
+                          isPurchased={isPurchased}
+                          isPaidBook={isPaidBook}
                           onRemoveFromLibrary={handleRemoveFromLibrary}
                         />
                       );
@@ -275,6 +273,8 @@ const EnhancedLibrary = () => {
                 {filteredLibraryBooks.map((entry: any) => {
                   const book = entry.book || entry;
                   if (!book || !book.title) return null;
+                  const isPurchased = entry?.isPurchased || entry?.purchased || false;
+                  const isPaidBook = !(book?.isFree === true || book?.is_free === true || book?.price === 0 || book?.price === '0' || book?.price === undefined || book?.price === null);
 
                   return (
                     <BookCard
@@ -283,6 +283,8 @@ const EnhancedLibrary = () => {
                       variant="compact"
                       showActionButtons={false}
                       isInLibrary={true}
+                      isPurchased={isPurchased}
+                      isPaidBook={isPaidBook}
                       onRemoveFromLibrary={handleRemoveFromLibrary}
                     />
                   );

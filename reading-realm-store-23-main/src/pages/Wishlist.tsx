@@ -9,7 +9,7 @@ import UniversalHeader from "@/components/UniversalHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
-import { useUserData } from '@/contexts/UserDataContext';
+import { useUserData } from '@/contexts/OptimizedUserDataContext';
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 
