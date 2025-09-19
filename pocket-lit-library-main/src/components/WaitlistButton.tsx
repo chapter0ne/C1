@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import WaitlistDialog from './waitlist/WaitlistDialog';
@@ -34,7 +33,7 @@ const WaitlistButton: React.FC<WaitlistButtonProps> = ({
     }
     
     // For non-partner buttons, redirect to the reader application
-    window.open('https://chapterone-reader-app.netlify.app', '_blank');
+    window.open('https://read.chapterone.dev', '_blank');
   };
 
   return (
