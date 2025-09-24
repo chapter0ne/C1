@@ -1,5 +1,5 @@
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { api } from '@/utils/api';
 
 export const useCreateBook = () => {
@@ -10,8 +10,7 @@ export const useCreateBook = () => {
       return await api.post('/books', bookData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['published-books'] });
-      queryClient.invalidateQueries({ queryKey: ['draft-books'] });
+      // Only invalidate the main query to prevent conflicts
       queryClient.invalidateQueries({ queryKey: ['all-books'] });
     },
   });
@@ -22,12 +21,23 @@ export const useUpdateBook = () => {
   
   return useMutation({
     mutationFn: async ({ id, ...bookData }: { id: string; [key: string]: any }) => {
-      return await api.put(`/books/${id}`, bookData);
+      console.log('useUpdateBook mutationFn called with:', { id, bookData });
+      console.log('Making API call to PUT /books/' + id);
+      const result = await api.put(`/books/${id}`, bookData);
+      console.log('useUpdateBook API response:', result);
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['published-books'] });
-      queryClient.invalidateQueries({ queryKey: ['draft-books'] });
+    onSuccess: (data) => {
+      console.log('useUpdateBook onSuccess:', data);
+      console.log('Invalidating all-books query cache...');
+      // Invalidate multiple queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['all-books'] });
+      queryClient.invalidateQueries({ queryKey: ['book', data._id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      console.log('Cache invalidation completed');
+    },
+    onError: (error) => {
+      console.error('useUpdateBook onError:', error);
     },
   });
 };

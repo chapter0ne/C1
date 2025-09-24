@@ -69,12 +69,25 @@ async function request(method: string, url: string, data?: any, options?: { sign
   }
 
   const normalizedUrl = normalizeUrl(url);
+  
+  // Create a combined AbortController that respects both the provided signal and a timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.log(`Request timeout for ${method} ${normalizedUrl}`);
+    controller.abort();
+  }, 25000); // 25 second timeout for all requests
+
+  // Combine signals if one is provided
+  if (options?.signal) {
+    options.signal.addEventListener('abort', () => controller.abort());
+  }
+
   const config: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
     },
-    signal: options?.signal, // Support AbortController
+    signal: controller.signal,
   };
 
   if (token) {
@@ -87,7 +100,7 @@ async function request(method: string, url: string, data?: any, options?: { sign
   if (data && method !== 'GET') {
     config.body = JSON.stringify(data);
   }
-
+  
   try {
     const response = await fetch(`${API_BASE}${normalizedUrl}`, config);
     
@@ -119,6 +132,9 @@ async function request(method: string, url: string, data?: any, options?: { sign
       throw new Error(`Request failed: ${response.status} ${errorText}`);
     }
 
+    // Clear timeout on successful response
+    clearTimeout(timeoutId);
+    
     // Reset connection failures on success
     connectionFailures = 0;
     
@@ -136,6 +152,9 @@ async function request(method: string, url: string, data?: any, options?: { sign
       return text;
     }
   } catch (error) {
+    // Clear timeout on error
+    clearTimeout(timeoutId);
+    
     // Handle AbortController errors
     if (error.name === 'AbortError') {
       throw new Error('Request was cancelled due to timeout.');

@@ -13,18 +13,29 @@ export const useMetrics = () => {
       const books = await api.get('/books');
       // Fetch all users
       const users = await api.get('/users');
-      // Fetch all purchases
+      // Fetch all purchases (successful Paystack payments)
       const purchases = await api.get('/purchases');
+
+      // Filter successful purchases (Paystack successful payments only)
+      const successfulPurchases = purchases.filter(p => 
+        p.status === 'completed' || p.status === 'success' || p.transactionId
+      );
 
       // Get total published books count
       const totalBooks = books.length;
       // Get active users with reader role count
       const activeUsers = users.filter(u => Array.isArray(u.roles) && u.roles.includes('reader')).length;
-      // Get monthly sales total (sum of all purchases this month)
-      const monthlyPurchases = purchases.filter(p => new Date(p.createdAt) >= startOfMonth);
-      const monthlySales = monthlyPurchases.reduce((sum, purchase) => sum + Number(purchase.amount_paid || purchase.amountPaid || 0), 0);
-      // Get total revenue (sum of all purchases ever)
-      const totalRevenue = purchases.reduce((sum, purchase) => sum + Number(purchase.amount_paid || purchase.amountPaid || 0), 0);
+      // Get monthly sales total (sum of successful purchases this month)
+      const monthlyPurchases = successfulPurchases.filter(p => 
+        new Date(p.purchasedAt || p.createdAt) >= startOfMonth
+      );
+      const monthlySales = monthlyPurchases.reduce((sum, purchase) => 
+        sum + Number(purchase.amountPaid || purchase.amount_paid || 0), 0
+      );
+      // Get total revenue (sum of all successful purchases ever)
+      const totalRevenue = successfulPurchases.reduce((sum, purchase) => 
+        sum + Number(purchase.amountPaid || purchase.amount_paid || 0), 0
+      );
 
       return {
         totalBooks,

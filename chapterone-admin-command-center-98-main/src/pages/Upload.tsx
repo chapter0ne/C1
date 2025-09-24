@@ -81,13 +81,14 @@ const Upload = () => {
     }
   }, [bookId]); // Remove setInitialData and isLoadingBook from dependencies
 
-  // Set initial data for edit mode when data is fetched
+  // Set initial data for edit mode when data is fetched (only once)
   useEffect(() => {
     if (editBookData && editChapters && setInitialData && !isFormCleared) {
+      console.log('Setting initial data - editBookData:', editBookData, 'editChapters:', editChapters);
       setInitialData(editBookData, editChapters);
       setIsLoadingBook(false); // Mark loading as complete
     }
-  }, [editBookData, editChapters, setInitialData, isFormCleared]);
+  }, [editBookData, editChapters, isFormCleared]); // Removed setInitialData from dependencies
 
   const {
     isStep1Valid,
@@ -118,10 +119,15 @@ const Upload = () => {
   };
 
   const handleSaveDraftWithData = () => {
+    console.log('handleSaveDraftWithData called with:', { formData, chapters, selectedTags });
+    console.log('Current step:', currentStep);
+    console.log('Form data keys:', Object.keys(formData));
+    console.log('Form data values:', formData);
     handleSaveDraft(formData, chapters, selectedTags);
   };
 
   const handlePublishWithData = () => {
+    console.log('handlePublishWithData called with:', { formData, chapters, selectedTags });
     handlePublish(formData, chapters, selectedTags);
   };
 
@@ -136,6 +142,7 @@ const Upload = () => {
   const handleResetForm = () => {
     if (window.confirm('Are you sure you want to restore the original book data? This will overwrite any changes you have made.')) {
       setIsFormCleared(false); // Allow repopulation
+      clearFormData(); // Clear current form data
       // The useEffect will automatically repopulate the form
       toast.success('Form reset to original book data!');
     }
@@ -225,17 +232,17 @@ const Upload = () => {
           onChapterDelete={handleChapterDeleteWithToast}
           onSaveDraft={handleSaveDraftWithData}
           onPublish={handlePublishWithData}
-          onStepNavigation={(stepNumber) => handleStepNavigation(stepNumber, isStep1Valid(), isStep2Valid())}
+          onStepNavigation={(stepNumber) => handleStepNavigation(stepNumber, Boolean(isStep1Valid()), Boolean(isStep2Valid()))}
           isStepAccessible={isStepAccessible}
-          isStep1Valid={isStep1Valid}
+          isStep1Valid={() => Boolean(isStep1Valid())}
         />
         
         <UploadNavigation
           currentStep={currentStep}
-          isStep1Valid={isStep1Valid()}
-          isStep2Valid={isStep2Valid()}
-          isStep3Valid={isStep3Valid()}
-          onNext={() => handleNext(isStep1Valid(), isStep2Valid())}
+          isStep1Valid={Boolean(isStep1Valid())}
+          isStep2Valid={Boolean(isStep2Valid())}
+          isStep3Valid={Boolean(isStep3Valid())}
+          onNext={() => handleNext(Boolean(isStep1Valid()), Boolean(isStep2Valid()))}
           onPrevious={handlePrevious}
           onSaveDraft={handleSaveDraftWithData}
           onPublish={handlePublishWithData}

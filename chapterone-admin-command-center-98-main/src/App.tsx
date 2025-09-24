@@ -20,40 +20,47 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        // Don't retry auth errors
+        // Don't retry auth errors or timeout errors
         if (error instanceof Error && (
           error.message.includes('401') || 
           error.message.includes('403') || 
-          error.message.includes('Authentication')
+          error.message.includes('Authentication') ||
+          error.message.includes('timeout') ||
+          error.message.includes('AbortError')
         )) {
           return false;
         }
-        // Retry network errors up to 2 times
-        return failureCount < 2;
+        // More conservative retry for network errors
+        return failureCount < 1;
       },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      staleTime: 2 * 60 * 1000, // 2 minutes (reduced from 5)
-      gcTime: 5 * 60 * 1000, // 5 minutes (reduced from 10)
+      retryDelay: (attemptIndex) => Math.min(2000 * 2 ** attemptIndex, 10000), // Reduced max delay
+      staleTime: 1 * 60 * 1000, // 1 minute to prevent stale data issues
+      gcTime: 3 * 60 * 1000, // 3 minutes garbage collection
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       refetchOnMount: true,
-      // Add network mode for better offline handling
+      // Better network mode handling
       networkMode: 'online',
+      // Note: Individual query functions should implement their own timeouts
+      // This configuration ensures queries don't hang indefinitely
     },
     mutations: {
       retry: (failureCount, error) => {
-        // Don't retry auth errors
+        // Don't retry auth errors, timeouts, or client errors
         if (error instanceof Error && (
           error.message.includes('401') || 
           error.message.includes('403') || 
-          error.message.includes('Authentication')
+          error.message.includes('Authentication') ||
+          error.message.includes('timeout') ||
+          error.message.includes('AbortError') ||
+          error.message.includes('4') // Client errors
         )) {
           return false;
         }
-        // Retry network errors up to 1 time
-        return failureCount < 1;
+        // No retry for mutations to prevent hanging
+        return false;
       },
-      retryDelay: 1000,
+      retryDelay: 2000,
     },
   },
 });
@@ -63,17 +70,6 @@ function App() {
   useEffect(() => {
     // Clear query cache on app mount to prevent stale data issues
     queryClient.clear();
-    
-    // Set up periodic cleanup
-    const cleanupInterval = setInterval(() => {
-      // Remove stale queries
-      queryClient.removeQueries({
-        predicate: (query) => {
-          const queryState = query.state;
-          return queryState.dataUpdatedAt < Date.now() - (10 * 60 * 1000); // 10 minutes
-        }
-      });
-    }, 5 * 60 * 1000); // Every 5 minutes
     
     // Network status monitoring
     const handleOnline = () => {
@@ -90,8 +86,7 @@ function App() {
     window.addEventListener('offline', handleOffline);
     
     return () => {
-      clearInterval(cleanupInterval);
-      queryClient.clear();
+      // Only clear cache on unmount, don't interfere with ongoing operations
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };

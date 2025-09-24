@@ -41,6 +41,19 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ message: 'Free books cannot be added to cart' });
     }
 
+    // Check if book is already purchased by user
+    const existingPurchase = await Purchase.findOne({ 
+      user: userId, 
+      book: bookId 
+    });
+    
+    if (existingPurchase) {
+      return res.status(400).json({ 
+        message: 'You have already purchased this book. It should be in your library.',
+        cart 
+      });
+    }
+
     let cart = await Cart.findOne({ user: userId });
     if (!cart) {
       cart = new Cart({ user: userId, items: [] });
@@ -49,11 +62,14 @@ exports.addToCart = async (req, res) => {
     // Check if book is already in cart
     const existingItem = cart.items.find(item => item.book.toString() === bookId);
     if (existingItem) {
-      existingItem.quantity += quantity;
+      return res.status(400).json({ 
+        message: 'Book is already in your cart. You can only add one copy of each book.',
+        cart 
+      });
     } else {
       cart.items.push({
         book: bookId,
-        quantity
+        quantity: 1 // Always set quantity to 1, no matter what user sends
       });
     }
 

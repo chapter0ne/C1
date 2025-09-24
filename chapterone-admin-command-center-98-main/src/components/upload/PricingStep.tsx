@@ -13,6 +13,7 @@ interface FormData {
   price: string;
   isFree: boolean;
   coverImage?: File;
+  coverImageUrl?: string; // Add this field for existing cover images
 }
 
 interface PricingStepProps {
@@ -22,6 +23,10 @@ interface PricingStepProps {
 }
 
 const PricingStep = ({ formData, selectedTags, onInputChange }: PricingStepProps) => {
+  // Debug: Show current form data
+  console.log('PricingStep render - formData:', formData);
+  console.log('PricingStep render - selectedTags:', selectedTags);
+
   return (
     <div className="max-w-2xl mx-auto">
       <Card>

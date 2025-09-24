@@ -27,7 +27,7 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
-// Get all featured books (with optional category filter)
+// Get all featured books (with optional category filter) - Public endpoint
 router.get('/', async (req, res) => {
   try {
     const { category } = req.query;
@@ -38,11 +38,15 @@ router.get('/', async (req, res) => {
     }
     
     const featuredBooks = await FeaturedBook.find(query)
-      .populate('book', 'title author genre coverImageUrl isFree price status')
+      .populate('book', 'title author genre coverImageUrl isFree price status rating totalRatings averageRating tags')
       .populate('featuredBy', 'username email')
       .sort({ displayOrder: 1, featuredAt: -1 });
     
-    res.json(featuredBooks);
+    // Filter out any featured books where the book was deleted
+    const validFeaturedBooks = featuredBooks.filter(fb => fb.book !== null);
+    
+    // Always return an array, even if empty
+    res.json(validFeaturedBooks || []);
   } catch (err) {
     console.error('Get featured books error:', err);
     res.status(500).json({ message: err.message });

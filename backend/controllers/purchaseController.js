@@ -37,4 +37,28 @@ exports.getBookPurchaseCount = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+// Check if user has purchased a specific book
+exports.checkUserBookPurchase = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { bookId } = req.query;
+    
+    if (!bookId) {
+      return res.status(400).json({ message: 'bookId query parameter is required' });
+    }
+
+    const purchase = await Purchase.findOne({ 
+      user: userId, 
+      book: bookId 
+    });
+
+    res.json({ 
+      hasPurchased: !!purchase,
+      purchase: purchase || null
+    });
+  } catch (err) {
+    next(err);
+  }
 }; 

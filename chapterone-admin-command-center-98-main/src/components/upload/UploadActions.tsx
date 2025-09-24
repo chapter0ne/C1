@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -50,6 +49,9 @@ export const useUploadActions = () => {
       return;
     }
 
+    console.log('handleSaveDraft called with:', { formData, chapters, selectedTags, isEditMode });
+    console.log('Current bookId:', bookId);
+    
     setIsSubmitting(true)
     try {
       let coverImageUrl = null;
@@ -74,19 +76,26 @@ export const useUploadActions = () => {
         coverImageUrl: coverImageUrl,
         status: 'draft',
         tags: selectedTags,
-        chapters: chapters.map((chapter) => ({
+        chapters: chapters.map((chapter, idx) => ({
           title: chapter.title,
-          content: chapter.content
+          content: chapter.content,
+          order: typeof chapter.order === 'number' ? chapter.order : idx // Ensure order is set
         }))
       };
 
       if (isEditMode) {
         // Update existing book
-        await updateBookMutation.mutateAsync({ id: bookId, ...bookData });
+        console.log('Calling updateBookMutation.mutateAsync with:', { id: bookId, ...bookData });
+        console.log('Full bookData being sent:', bookData);
+        const result = await updateBookMutation.mutateAsync({ id: bookId, ...bookData });
+        console.log('updateBookMutation result:', result);
+        console.log('updateBookMutation success - book updated!');
         toast.success('Book updated as draft!');
       } else {
         // Create new book
-        await createBookMutation.mutateAsync(bookData);
+        console.log('Calling createBookMutation.mutateAsync with:', bookData);
+        const result = await createBookMutation.mutateAsync(bookData);
+        console.log('createBookMutation result:', result);
         toast.success('Book saved as draft!');
       }
 
@@ -107,6 +116,8 @@ export const useUploadActions = () => {
       return;
     }
 
+    console.log('handlePublish called with:', { formData, chapters, selectedTags, isEditMode });
+    
     setIsSubmitting(true);
     try {
       // Validation for publishing
@@ -137,19 +148,24 @@ export const useUploadActions = () => {
         coverImageUrl: coverImageUrl,
         status: 'published',
         tags: selectedTags,
-        chapters: chapters.map((chapter) => ({
+        chapters: chapters.map((chapter, idx) => ({
           title: chapter.title,
-          content: chapter.content
+          content: chapter.content,
+          order: typeof chapter.order === 'number' ? chapter.order : idx // Ensure order is set
         }))
       };
 
       if (isEditMode) {
         // Update existing book
-        await updateBookMutation.mutateAsync({ id: bookId, ...bookData });
+        console.log('Calling updateBookMutation.mutateAsync for publish with:', { id: bookId, ...bookData });
+        const result = await updateBookMutation.mutateAsync({ id: bookId, ...bookData });
+        console.log('updateBookMutation publish result:', result);
         toast.success('Book updated and published successfully!');
       } else {
         // Create new book
-        await createBookMutation.mutateAsync(bookData);
+        console.log('Calling createBookMutation.mutateAsync for publish with:', bookData);
+        const result = await createBookMutation.mutateAsync(bookData);
+        console.log('createBookMutation publish result:', result);
         toast.success('Book published successfully!');
       }
 

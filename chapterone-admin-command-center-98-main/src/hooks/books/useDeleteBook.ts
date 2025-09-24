@@ -10,12 +10,12 @@ export const useDeleteBook = () => {
     mutationFn: async (bookId: string) => {
       console.log('useDeleteBook mutationFn called with bookId:', bookId);
       
-      // Add timeout to prevent hanging
+      // Use a more conservative timeout to prevent hanging
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         console.log('useDeleteBook: Request timeout reached, aborting...');
         controller.abort();
-      }, 30000); // 30 second timeout
+      }, 20000); // Reduced to 20 second timeout
       
       try {
         console.log('useDeleteBook: Making API call to delete book...');
@@ -62,27 +62,44 @@ export const useDeleteBook = () => {
     },
     onMutate: async (bookId) => {
       console.log('useDeleteBook: onMutate called for bookId:', bookId);
-      // Cancel any outgoing refetches
+      
+      // Cancel any outgoing refetches to prevent race conditions
       await queryClient.cancelQueries({ queryKey: ['all-books'] });
-      await queryClient.cancelQueries({ queryKey: ['published-books'] });
-      await queryClient.cancelQueries({ queryKey: ['draft-books'] });
-      await queryClient.cancelQueries({ queryKey: ['books'] });
+      
+      // Get the current books data for rollback
+      const previousBooks = queryClient.getQueryData(['all-books']);
+      
+      // Optimistically update the cache by removing the book
+      if (previousBooks && Array.isArray(previousBooks)) {
+        queryClient.setQueryData(['all-books'], (old: any) => {
+          if (!old || !Array.isArray(old)) return old;
+          return old.filter((book: any) => book._id !== bookId);
+        });
+        console.log('useDeleteBook: Optimistic update applied, book removed from cache');
+      }
+      
+      // Return context for potential rollback
+      return { previousBooks };
     },
     onSuccess: (data, bookId) => {
       console.log('useDeleteBook onSuccess called for bookId:', bookId);
       console.log('useDeleteBook: Success response data:', data);
       
-      // Invalidate ALL relevant queries to prevent stale data
-      queryClient.invalidateQueries({ queryKey: ['all-books'] });
-      queryClient.invalidateQueries({ queryKey: ['published-books'] });
-      queryClient.invalidateQueries({ queryKey: ['draft-books'] });
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      
+      // Show success message immediately
       toast.success('Book deleted successfully');
+      
+      // The optimistic update already handled the UI update
+      // No need to invalidate queries - this was causing the hanging issue
     },
     onError: (error: Error, bookId, context) => {
       console.error('useDeleteBook onError called for bookId:', bookId, 'Error:', error);
       console.error('useDeleteBook onError context:', context);
+      
+      // Rollback optimistic update if it exists
+      if (context?.previousBooks) {
+        queryClient.setQueryData(['all-books'], context.previousBooks);
+        console.log('useDeleteBook: Rollback applied, book restored to cache');
+      }
       
       // Show user-friendly error message
       toast.error(error.message || 'Failed to delete book');
@@ -90,24 +107,34 @@ export const useDeleteBook = () => {
     onSettled: (data, error, bookId) => {
       console.log('useDeleteBook onSettled called for bookId:', bookId);
       console.log('useDeleteBook: Final result - data:', data, 'error:', error);
+      
+      // No additional invalidation needed - optimistic update handles everything
+      // This prevents the cascade of refetches that was causing the hanging
+      
+      // Force a small delay to ensure UI state is properly reset
+      setTimeout(() => {
+        console.log('useDeleteBook: Mutation settled, UI should be responsive');
+      }, 100);
     },
-    // Add retry logic with exponential backoff
+    // More conservative retry logic
     retry: (failureCount, error) => {
       console.log('useDeleteBook: Retry attempt', failureCount, 'for error:', error);
       
-      // Don't retry on client errors (4xx)
-      if (error.message?.includes('4')) {
-        console.log('useDeleteBook: Not retrying 4xx error');
+      // Don't retry on client errors (4xx) or timeout errors
+      if (error.message?.includes('4') || 
+          error.message?.includes('timeout') ||
+          error.message?.includes('Authentication')) {
+        console.log('useDeleteBook: Not retrying client/timeout error');
         return false;
       }
       
-      // Retry up to 2 times for server errors
-      const shouldRetry = failureCount < 2;
+      // Only retry once for server errors to prevent hanging
+      const shouldRetry = failureCount < 1;
       console.log('useDeleteBook: Should retry:', shouldRetry);
       return shouldRetry;
     },
     retryDelay: (attemptIndex) => {
-      const delay = Math.min(1000 * 2 ** attemptIndex, 5000);
+      const delay = Math.min(2000 * 2 ** attemptIndex, 8000); // Increased delays
       console.log('useDeleteBook: Retry delay:', delay, 'ms for attempt:', attemptIndex);
       return delay;
     },

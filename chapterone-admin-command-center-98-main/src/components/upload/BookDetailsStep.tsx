@@ -18,6 +18,7 @@ interface FormData {
   price: string;
   isFree: boolean;
   coverImage?: File;
+  coverImageUrl?: string; // Add this field for existing cover images
 }
 
 interface BookDetailsStepProps {
@@ -90,6 +91,11 @@ const BookDetailsStep = ({
       handleAddCustomTag();
     }
   };
+
+  // Debug: Show current form data
+  console.log('BookDetailsStep render - formData:', formData);
+  console.log('BookDetailsStep render - selectedTags:', selectedTags);
+  console.log('BookDetailsStep render - coverImageUrl:', coverImageUrl);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

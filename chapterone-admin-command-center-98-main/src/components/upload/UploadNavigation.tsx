@@ -25,6 +25,8 @@ const UploadNavigation = ({
   onPublish,
   isLoading = false
 }: UploadNavigationProps) => {
+  console.log('UploadNavigation render - currentStep:', currentStep, 'isLoading:', isLoading);
+  console.log('UploadNavigation validation states:', { isStep1Valid, isStep2Valid, isStep3Valid });
   const canGoNext = (currentStep === 1 && isStep1Valid) || (currentStep === 2 && isStep2Valid);
   const showNextButton = currentStep < 3;
   const showPublishButton = currentStep === 3;
@@ -47,7 +49,11 @@ const UploadNavigation = ({
       <div className="flex space-x-2">
         <Button 
           variant="outline" 
-          onClick={onSaveDraft}
+          onClick={() => {
+            console.log('Save Draft button clicked');
+            console.log('Button disabled state:', isLoading);
+            onSaveDraft();
+          }}
           disabled={isLoading}
           className="flex items-center gap-2"
         >
@@ -72,7 +78,10 @@ const UploadNavigation = ({
 
         {showPublishButton && (
           <Button 
-            onClick={onPublish}
+            onClick={() => {
+              console.log('Publish button clicked');
+              onPublish();
+            }}
             disabled={!isStep1Valid || !isStep2Valid || !isStep3Valid || isLoading}
             className="bg-black hover:bg-gray-800 text-white flex items-center gap-2"
           >

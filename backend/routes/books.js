@@ -88,6 +88,38 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+// Public endpoint for reading app to fetch published books (no auth required)
+router.get('/public', async (req, res) => {
+  try {
+    const { search, category, price } = req.query;
+    const filter = { status: 'published' };
+    
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { author: { $regex: search, $options: 'i' } },
+        { genre: { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (category && category !== 'All') {
+      filter.$or = [
+        { genre: { $regex: category, $options: 'i' } },
+        { tags: { $regex: category, $options: 'i' } }
+      ];
+    }
+    if (price && price !== 'All') {
+      if (price === 'Paid') filter.isFree = false;
+      if (price === 'Free') filter.isFree = true;
+    }
+    
+    const books = await Book.find(filter).select('title author genre coverImageUrl isFree price rating totalRatings averageRating tags');
+    res.json(books);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Enhanced search/filter endpoint for books
 router.get('/search', authMiddleware, async (req, res) => {
   try {
@@ -144,6 +176,9 @@ router.get('/:id/chapters', async (req, res) => {
 // Update book (admin only)
 router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
+    console.log('Backend: Book update request received for ID:', req.params.id);
+    console.log('Backend: Update data received:', req.body);
+    
     const updateData = { ...req.body };
     // If isFree is set, ensure price is 0
     if (typeof updateData.isFree !== 'undefined') {
@@ -157,10 +192,19 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
       updateData.isFree = false;
       updateData.price = Number(updateData.price);
     }
+    
+    console.log('Backend: Processed update data:', updateData);
+    
     const book = await Book.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    if (!book) return res.status(404).json({ message: 'Book not found' });
+    if (!book) {
+      console.log('Backend: Book not found with ID:', req.params.id);
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    
+    console.log('Backend: Book updated successfully:', book);
     res.json(book);
   } catch (err) {
+    console.error('Backend: Error updating book:', err);
     res.status(500).json({ message: err.message });
   }
 });

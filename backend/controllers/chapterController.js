@@ -5,7 +5,8 @@ exports.createChapter = async (req, res, next) => {
     const chapter = new Chapter({
       book: req.body.book,
       title: req.body.title,
-      content: req.body.content
+      content: req.body.content,
+      order: req.body.order // Save chapter order
     });
     await chapter.save();
     res.status(201).json(chapter);
@@ -16,7 +17,7 @@ exports.createChapter = async (req, res, next) => {
 
 exports.getChaptersByBook = async (req, res, next) => {
   try {
-    const chapters = await Chapter.find({ book: req.params.bookId }).sort('chapterOrder');
+    const chapters = await Chapter.find({ book: req.params.bookId }).sort('order'); // Sort by order field
     res.json(chapters);
   } catch (err) {
     next(err);
@@ -48,4 +49,4 @@ exports.deleteChapter = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-}; 
+};

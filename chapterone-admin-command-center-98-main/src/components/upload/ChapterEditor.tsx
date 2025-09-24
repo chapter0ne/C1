@@ -24,6 +24,7 @@ const ChapterEditor = ({ onSave, onCancel, chapter }: ChapterEditorProps) => {
     const chapterData = {
       title: title.trim(),
       content: content.trim(),
+      order: chapter?.order || 0,
     };
 
     onSave(chapterData);
@@ -81,7 +82,10 @@ const ChapterEditor = ({ onSave, onCancel, chapter }: ChapterEditorProps) => {
           Cancel
         </Button>
         <Button 
-          onClick={handleSave}
+          onClick={() => {
+            console.log('Chapter Save button clicked');
+            handleSave();
+          }}
           disabled={!title.trim() || !content.trim()}
           className="bg-black hover:bg-gray-800 text-white"
         >

@@ -6,19 +6,17 @@ export const useDashboardData = () => {
   return useQuery({
     queryKey: ['dashboard-data'],
     queryFn: async () => {
-      // Fetch all purchases (admin only)
+      // Fetch all purchases (admin only) - these are successful Paystack payments
       const purchases = await api.get('/purchases');
       // Fetch all users (admin only)
       const users = await api.get('/users');
       // Fetch all books (published only)
       const books = await api.get('/books');
       // Fetch all reviews (not paginated, for dashboard count)
-      // (Assume you have an endpoint for all reviews, otherwise skip or implement)
       let reviews = [];
       try {
         reviews = await api.get('/reviews');
       } catch (e) {
-        // If endpoint not available, fallback to empty
         reviews = [];
       }
 
@@ -27,20 +25,45 @@ export const useDashboardData = () => {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      // Monthly purchases
-      const monthlyPurchases = purchases.filter(p => new Date(p.createdAt) >= startOfMonth);
+      // Filter successful purchases (Paystack successful payments)
+      const successfulPurchases = purchases.filter(p => 
+        p.status === 'completed' || p.status === 'success' || p.transactionId
+      );
+
+      // Monthly purchases (successful payments from start of month)
+      const monthlyPurchases = successfulPurchases.filter(p => 
+        new Date(p.purchasedAt || p.createdAt) >= startOfMonth
+      );
+      
       // Today's purchases
-      const todayPurchases = purchases.filter(p => new Date(p.createdAt) >= startOfToday);
+      const todayPurchases = successfulPurchases.filter(p => 
+        new Date(p.purchasedAt || p.createdAt) >= startOfToday
+      );
+      
       // Total purchases cost this month
-      const totalMonthlyCost = monthlyPurchases.reduce((sum, purchase) => sum + Number(purchase.amount_paid || purchase.amountPaid || 0), 0);
+      const totalMonthlyCost = monthlyPurchases.reduce((sum, purchase) => 
+        sum + Number(purchase.amountPaid || purchase.amount_paid || 0), 0
+      );
+      
       // Users with reader role (today/month)
-      const todayUsersCount = users.filter(u => u.role === 'reader' && new Date(u.createdAt) >= startOfToday).length;
-      const monthlyUsersCount = users.filter(u => u.role === 'reader' && new Date(u.createdAt) >= startOfMonth).length;
+      const todayUsersCount = users.filter(u => 
+        Array.isArray(u.roles) && u.roles.includes('reader') && 
+        new Date(u.createdAt) >= startOfToday
+      ).length;
+      
+      const monthlyUsersCount = users.filter(u => 
+        Array.isArray(u.roles) && u.roles.includes('reader') && 
+        new Date(u.createdAt) >= startOfMonth
+      ).length;
+      
       // Today's reviews
-      const todayReviewsCount = reviews.filter(r => new Date(r.createdAt) >= startOfToday).length;
-      // Recent sales (last 5)
-      const recentSales = purchases
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      const todayReviewsCount = reviews.filter(r => 
+        new Date(r.createdAt) >= startOfToday
+      ).length;
+      
+      // Recent sales (last 5 successful purchases)
+      const recentSales = successfulPurchases
+        .sort((a, b) => new Date(b.purchasedAt || b.createdAt) - new Date(a.purchasedAt || a.createdAt))
         .slice(0, 5);
 
       // Current user profile (admin only, from /auth/me)
@@ -54,6 +77,7 @@ export const useDashboardData = () => {
       return {
         currentUserProfile,
         monthlyPurchases,
+        allSales: successfulPurchases, // All successful sales for filtering
         todayPurchasesCount: todayPurchases.length,
         totalMonthlyCost,
         todayUsersCount,

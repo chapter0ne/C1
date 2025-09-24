@@ -14,6 +14,7 @@ interface FormData {
   price: string;
   isFree: boolean;
   coverImage?: File;
+  coverImageUrl?: string; // Add this field for existing cover images
 }
 
 interface UploadStepManagerProps {
@@ -64,6 +65,11 @@ const UploadStepManager = ({
   isStep1Valid
 }: UploadStepManagerProps) => {
   const renderStepContent = () => {
+    console.log('UploadStepManager renderStepContent - currentStep:', currentStep);
+    console.log('UploadStepManager renderStepContent - formData:', formData);
+    console.log('UploadStepManager renderStepContent - selectedTags:', selectedTags);
+    console.log('UploadStepManager renderStepContent - chapters:', chapters);
+    
     switch (currentStep) {
       case 1:
         return (

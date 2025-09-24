@@ -42,15 +42,19 @@ const BookContentStep = ({
   const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
 
   const handleSaveChapter = (chapterData: Omit<Chapter, 'id' | 'createdAt' | 'updatedAt'>) => {
+    console.log('handleSaveChapter called with:', { chapterData, editingChapter });
+    
     const now = new Date();
     const chapter: Chapter = {
       id: editingChapter?.id || Date.now().toString(),
       title: chapterData.title,
       content: chapterData.content,
       createdAt: editingChapter?.createdAt || now,
-      updatedAt: now
+      updatedAt: now,
+      order: editingChapter?.order || 0
     };
 
+    console.log('Saving chapter:', chapter);
     onChapterSave(chapter);
     setEditingChapter(null);
     setIsCreatingNew(false);
@@ -67,6 +71,8 @@ const BookContentStep = ({
   };
 
   const confirmDeleteChapter = () => {
+    console.log('confirmDeleteChapter called with chapterToDelete:', chapterToDelete);
+    
     if (chapterToDelete) {
       onChapterDelete(chapterToDelete);
       if (selectedChapter?.id === chapterToDelete) {

@@ -11,6 +11,9 @@ const bookSchema = new mongoose.Schema({
   isFree: { type: Boolean, default: false },
   coverImageUrl: { type: String },
   status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
+  rating: { type: Number, default: 5.0, min: 0, max: 5 }, // Default 5 stars
+  totalRatings: { type: Number, default: 0 }, // Count of ratings
+  averageRating: { type: Number, default: 5.0, min: 0, max: 5 }, // Cumulative average
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 

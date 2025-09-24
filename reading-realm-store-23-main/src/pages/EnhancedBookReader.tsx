@@ -1059,7 +1059,8 @@ const EnhancedBookReader = () => {
                 </div>
 
                 {/* Reading Mode - Scroll Only */}
-                <div>
+                {/* HIDE: Flip/Scroll dropdown and flip feature for now, only show scroll mode as static text */}
+                {/* <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: currentTheme.text }}>Reading Mode</label>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium" style={{ color: currentTheme.text }}>Scroll</span>
@@ -1070,6 +1071,18 @@ const EnhancedBookReader = () => {
                   <p className="text-xs text-blue-500 mt-1">
                     Flip mode coming soon
                   </p>
+                </div> */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: currentTheme.text }}>Reading Mode</label>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium" style={{ color: currentTheme.text }}>Scroll</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Scroll through chapters vertically
+                  </p>
+                  {/* <p className="text-xs text-blue-500 mt-1">
+                    Flip mode coming soon
+                  </p> */}
                 </div>
 
                 {/* Reading Progress Management */}

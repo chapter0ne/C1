@@ -13,27 +13,49 @@ export const useUploadValidation = (
     const hasCoverImage = formData.coverImage || coverImageUrl;
     
     // Basic required fields only (no pricing validation in step 1)
-    return formData.title.trim() !== '' && 
+    const isValid = formData.title.trim() !== '' && 
            formData.author.trim() !== '' && 
            formData.description.trim() !== '' && 
            formData.genre !== '' && 
            selectedTags.length > 0 &&
            hasCoverImage;
+    
+    console.log('isStep1Valid check:', {
+      title: formData.title.trim() !== '',
+      author: formData.author.trim() !== '',
+      description: formData.description.trim() !== '',
+      genre: formData.genre !== '',
+      tags: selectedTags.length > 0,
+      hasCoverImage,
+      isValid
+    });
+    
+    return isValid;
   };
 
   const isStep2Valid = () => {
-    return chapters.length > 0;
+    const isValid = chapters.length > 0;
+    console.log('isStep2Valid check:', { chaptersLength: chapters.length, isValid });
+    return isValid;
   };
 
   const isStep3Valid = () => {
     // Pricing validation for step 3
-    return formData.isFree || (formData.price && Number(formData.price) > 0);
+    const priceNumber = Number(formData.price) || 0;
+    const isValid = formData.isFree || (formData.price && priceNumber > 0);
+    console.log('isStep3Valid check:', { 
+      isFree: formData.isFree, 
+      price: formData.price, 
+      priceNumber: priceNumber, 
+      isValid 
+    });
+    return isValid;
   };
 
-  const isStepAccessible = (stepNumber: number) => {
+  const isStepAccessible = (stepNumber: number): boolean => {
     if (stepNumber === 1) return true;
-    if (stepNumber === 2) return isStep1Valid();
-    if (stepNumber === 3) return isStep1Valid() && isStep2Valid();
+    if (stepNumber === 2) return Boolean(isStep1Valid());
+    if (stepNumber === 3) return Boolean(isStep1Valid()) && Boolean(isStep2Valid());
     return false;
   };
 
