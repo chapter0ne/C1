@@ -20,7 +20,39 @@ console.log('Upload limits configured:', {
 });
 
 const app = express();
-app.use(cors());
+
+// CORS configuration for production
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Allow your frontend domains
+    const allowedOrigins = [
+      'https://your-frontend-domain.com',
+      'https://your-admin-domain.com',
+      // Add your actual frontend and admin domains here
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // For now, allow all origins in development
+    // In production, replace this with your actual domains
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 
 // Large upload handling middleware
 app.use(largeUploadHandler);
@@ -92,6 +124,15 @@ app.use('/api/cart', cartRoutes);
 app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
 app.use('/api/upload', uploadRoutes);
 
+// Health check endpoint for Render
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'ChapterOne Backend is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/', (req, res) => {
   res.send('ChapterOne Admin Backend is running');
 });
@@ -100,6 +141,9 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`Server running on http://${HOST}:${PORT}`);
+  console.log(`Health check available at http://${HOST}:${PORT}/api/health`);
 }); 

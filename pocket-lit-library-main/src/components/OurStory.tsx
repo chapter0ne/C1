@@ -88,8 +88,8 @@ const OurStory: React.FC = () => {
             >
               <div className="absolute inset-0 bg-gradient-to-br from-chapterRed-100 to-chapterRed-50 rounded-2xl transform rotate-3"></div>
               <img
-                src="/lovable-uploads/1942778f-498f-4b07-9003-4de4c1ecb717.png"
-                alt="African literature and storytelling"
+                src="https://res.cloudinary.com/dvab101hh/image/upload/v1760719760/pocket-library/our-story/sin-eater-book-cover.jpg"
+                alt="SIN EATER by Megan Campisi - Featured African literature"
                 className="relative z-10 rounded-2xl shadow-lg object-cover w-full h-full transform -rotate-3 transition-transform hover:rotate-0 duration-500"
               />
               <div className="absolute -bottom-5 -right-5 w-24 h-24 bg-chapterRed-500 rounded-full opacity-20"></div>
