@@ -88,8 +88,8 @@ const OurStory: React.FC = () => {
             >
               <div className="absolute inset-0 bg-gradient-to-br from-chapterRed-100 to-chapterRed-50 rounded-2xl transform rotate-3"></div>
               <img
-                src="https://res.cloudinary.com/dvab101hh/image/upload/w_300,h_450,c_fill,q_auto,f_auto/v1760722380/Screenshot_2025-09-25_at_6.39.25_PM_pssmh2.png"
-                alt="ChapterOne reading platform showcasing African literature"
+                src="https://res.cloudinary.com/dvab101hh/image/upload/w_300,h_450,c_fill,q_auto,f_auto/v1760728880/pocket-library/our-story/books-aesthetic-image.jpg"
+                alt="Beautiful collection of books representing African literature and storytelling"
                 className="relative z-10 rounded-2xl shadow-lg object-cover w-full h-full transform -rotate-3 transition-transform hover:rotate-0 duration-500"
               />
               <div className="absolute -bottom-5 -right-5 w-24 h-24 bg-chapterRed-500 rounded-full opacity-20"></div>
