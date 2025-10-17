@@ -650,12 +650,11 @@ const EnhancedBookReader = () => {
   return (
     <div 
       className="flex flex-col"
-      style={{ 
-        backgroundColor: isMidnight ? '#181818' : currentTheme.background,
-        color: isMidnight ? '#fff' : currentTheme.text,
-        minHeight: '100vh',
-        minHeight: '-webkit-fill-available',
-      }}
+        style={{ 
+          backgroundColor: isMidnight ? '#181818' : currentTheme.background,
+          color: isMidnight ? '#fff' : currentTheme.text,
+          minHeight: '-webkit-fill-available',
+        }}
     >
       <style>
         {`

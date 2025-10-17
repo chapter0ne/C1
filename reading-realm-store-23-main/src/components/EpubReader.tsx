@@ -791,11 +791,10 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
   return (
     <div 
       className="bg-white flex flex-col" 
-      style={{ 
-        overflowX: 'hidden',
-        minHeight: '100vh',
-        minHeight: '-webkit-fill-available',
-      }}
+        style={{ 
+          overflowX: 'hidden',
+          minHeight: '-webkit-fill-available',
+        }}
     >
       {/* Print protection */}
       <style>{`
@@ -929,10 +928,9 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
               theme === 'evening' ? 'bg-[#F5E6D3]' :
               'bg-[#1A1A1A]'
             }`}
-            style={{ 
-              height: "calc(100vh - 64px - 60px)",
-              height: "calc(-webkit-fill-available - 64px - 60px)",
-              userSelect: "none",
+              style={{ 
+                height: "calc(-webkit-fill-available - 64px - 60px)",
+                userSelect: "none",
               WebkitUserSelect: "none",
               MozUserSelect: "none",
               msUserSelect: "none",
