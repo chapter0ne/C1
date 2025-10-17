@@ -9,15 +9,15 @@ const Benefits: React.FC = () => {
   // Define the app screenshots to display
   const appScreens = [
     {
-      src: "https://res.cloudinary.com/dvab101hh/image/upload/v1760721474/pocket-library/mobile-screens/home-screen-new.jpg",
-      alt: "Home screen with personalized greeting and featured books",
+      src: "https://res.cloudinary.com/dvab101hh/image/upload/w_400,h_800,c_fill,q_auto,f_auto/v1760722238/Screenshot_2025-10-17_at_5.50.28_PM_rdrsjs.png",
+      alt: "Home screen with Hello Michael greeting and featured SIN EATER book",
     },
     {
-      src: "https://res.cloudinary.com/dvab101hh/image/upload/v1760721475/pocket-library/mobile-screens/library-screen-new.jpg",
+      src: "https://res.cloudinary.com/dvab101hh/image/upload/w_400,h_800,c_fill,q_auto,f_auto/v1760722238/Screenshot_2025-10-17_at_5.50.01_PM_rszq61.png",
       alt: "Library screen showing book collection with search and filters",
     },
     {
-      src: "https://res.cloudinary.com/dvab101hh/image/upload/v1760721477/pocket-library/mobile-screens/book-detail-screen-new.jpg",
+      src: "https://res.cloudinary.com/dvab101hh/image/upload/w_400,h_800,c_fill,q_auto,f_auto/v1760722237/Screenshot_2025-10-17_at_5.50.47_PM_gzb586.png",
       alt: "Book detail screen for Tess of the Road with description and action buttons",
     }
   ];
