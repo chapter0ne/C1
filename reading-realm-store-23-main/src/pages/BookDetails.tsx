@@ -477,7 +477,14 @@ const BookDetails = () => {
         {relatedBooks.length > 0 && (
           <div className="w-full max-w-2xl mx-auto p-4">
             <h2 className="text-lg font-bold mb-2">Related Books</h2>
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pb-2">
+            <div 
+              className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pb-2"
+              style={{
+                touchAction: 'pan-x pan-y',
+                overscrollBehavior: 'contain',
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
               {relatedBooks.map((relatedBook) => (
                 <div key={relatedBook._id || relatedBook.id} className="min-w-[7rem] flex-shrink-0 snap-start">
                   <BookCard book={relatedBook} variant="compact" />

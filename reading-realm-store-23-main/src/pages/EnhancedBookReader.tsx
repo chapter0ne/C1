@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import EpubReader from "@/components/EpubReader";
 
 import { 
   BookOpen, 
@@ -226,6 +227,9 @@ const EnhancedBookReader = () => {
       setError('You need to purchase this book to read it');
     }
   }, [user, book, bookState]);
+
+  // Check if book has EPUB file and use EPUB reader
+  // Note: This check is moved after all hooks to avoid "Rendered fewer hooks than expected" error
 
   useEffect(() => {
     if (chapters && chapters.length > 0 && currentChapter === 0) {
@@ -631,14 +635,26 @@ const EnhancedBookReader = () => {
     return 1; // Each chapter counts as 1 page in scroll mode
   };
 
-
+  // Check if book has EPUB file and use EPUB reader
+  if (hasAccess && book?.epubFileUrl) {
+    return (
+      <EpubReader 
+        epubUrl={book.epubFileUrl} 
+        bookTitle={book.title}
+        bookId={book._id || book.id}
+        onClose={() => window.history.back()}
+      />
+    );
+  }
 
   return (
     <div 
-      className="min-h-screen flex flex-col"
+      className="flex flex-col"
       style={{ 
         backgroundColor: isMidnight ? '#181818' : currentTheme.background,
-        color: isMidnight ? '#fff' : currentTheme.text
+        color: isMidnight ? '#fff' : currentTheme.text,
+        minHeight: '100vh',
+        minHeight: '-webkit-fill-available',
       }}
     >
       <style>

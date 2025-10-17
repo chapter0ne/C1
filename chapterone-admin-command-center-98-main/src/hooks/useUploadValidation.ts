@@ -6,7 +6,8 @@ export const useUploadValidation = (
   formData: FormData,
   selectedTags: string[],
   chapters: Chapter[],
-  coverImageUrl?: string | null // Add coverImageUrl parameter
+  coverImageUrl?: string | null, // Add coverImageUrl parameter
+  selectedEpubFile?: File | null // Add selectedEpubFile parameter
 ) => {
   const isStep1Valid = () => {
     // Check if we have either a new cover image or an existing cover image URL
@@ -34,8 +35,13 @@ export const useUploadValidation = (
   };
 
   const isStep2Valid = () => {
-    const isValid = chapters.length > 0;
-    console.log('isStep2Valid check:', { chaptersLength: chapters.length, isValid });
+    // Step 2 is valid if either chapters exist OR an EPUB file has been selected
+    const isValid = chapters.length > 0 || selectedEpubFile !== null;
+    console.log('isStep2Valid check:', { 
+      chaptersLength: chapters.length, 
+      selectedEpubFile: selectedEpubFile?.name, 
+      isValid 
+    });
     return isValid;
   };
 

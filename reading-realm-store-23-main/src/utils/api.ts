@@ -1,6 +1,8 @@
 import { toast } from '@/hooks/use-toast';
 
-const API_BASE = (window as any)._env_?.API_BASE || 'https://backend-8zug.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || (window as any)._env_?.API_BASE || 'http://localhost:5000/api';
+
+console.log('🌐 API Base URL configured:', API_BASE);
 
 function redirectToAuth() {
   if (window.location.pathname !== '/auth') {

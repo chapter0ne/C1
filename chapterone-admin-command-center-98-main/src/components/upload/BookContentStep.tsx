@@ -7,6 +7,8 @@ import DeleteChapterModal from "./DeleteChapterModal";
 import ChapterList from "./ChapterList";
 import ChapterPreview from "./ChapterPreview";
 import EmptyChapterState from "./EmptyChapterState";
+import EpubUpload from "./EpubUpload";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FormData {
   title: string;
@@ -25,14 +27,18 @@ interface BookContentStepProps {
   onChapterDelete: (chapterId: string) => void;
   formData: FormData;
   coverImageUrl?: string;
+  onEpubFileSelect: (file: File | null) => void;
+  selectedEpubFile?: File | null;
 }
 
 const BookContentStep = ({ 
   chapters, 
   onChapterSave, 
   onChapterDelete, 
-  formData,
-  coverImageUrl 
+  formData, 
+  coverImageUrl,
+  onEpubFileSelect,
+  selectedEpubFile
 }: BookContentStepProps) => {
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -135,24 +141,39 @@ const BookContentStep = ({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[85vh] max-h-[900px]">
-      {/* Chapters List - Mobile: full width, Desktop: narrower */}
-      <div className="lg:col-span-4 flex flex-col min-h-0">
-        <ChapterList
-          chapters={chapters}
-          selectedChapter={selectedChapter}
-          onChapterSelect={handleChapterSelect}
-          onEditChapter={handleEditChapter}
-          onDeleteChapter={handleDeleteChapter}
-          onShowPreview={handleShowPreview}
-          onCreateNew={handleCreateNew}
-        />
-      </div>
-      
-      {/* Chapter Editor - Mobile: full width, Desktop: wider */}
-      <div className="lg:col-span-8 flex flex-col min-h-0">
-        {renderChapterEditor()}
-      </div>
+    <div className="space-y-6">
+      <Tabs defaultValue="epub" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="epub">Upload EPUB</TabsTrigger>
+          <TabsTrigger value="chapters">Manual Chapters</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="epub" className="mt-6">
+          <EpubUpload onFileSelect={onEpubFileSelect} selectedFile={selectedEpubFile} />
+        </TabsContent>
+        
+        <TabsContent value="chapters" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[85vh] max-h-[900px]">
+            {/* Chapters List - Mobile: full width, Desktop: narrower */}
+            <div className="lg:col-span-4 flex flex-col min-h-0">
+              <ChapterList
+                chapters={chapters}
+                selectedChapter={selectedChapter}
+                onChapterSelect={handleChapterSelect}
+                onEditChapter={handleEditChapter}
+                onDeleteChapter={handleDeleteChapter}
+                onShowPreview={handleShowPreview}
+                onCreateNew={handleCreateNew}
+              />
+            </div>
+            
+            {/* Chapter Editor - Mobile: full width, Desktop: wider */}
+            <div className="lg:col-span-8 flex flex-col min-h-0">
+              {renderChapterEditor()}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <DeleteChapterModal 
         isOpen={deleteModalOpen}

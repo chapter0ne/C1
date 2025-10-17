@@ -19,6 +19,7 @@ export const useUploadForm = () => {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [initialDataSet, setInitialDataSet] = useState<boolean>(false);
+  const [selectedEpubFile, setSelectedEpubFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<FormData>({
     title: "",
     author: "",
@@ -162,6 +163,11 @@ export const useUploadForm = () => {
     setChapters([]);
     setCoverImageUrl(null);
     setInitialDataSet(false); // Reset the flag when clearing form
+    setSelectedEpubFile(null);
+  };
+
+  const handleEpubFileSelect = (file: File | null) => {
+    setSelectedEpubFile(file);
   };
 
   return {
@@ -169,6 +175,7 @@ export const useUploadForm = () => {
     selectedTags,
     chapters,
     coverImageUrl,
+    selectedEpubFile,
     handleTagToggle,
     handleInputChange,
     handleChapterSave,
@@ -177,6 +184,7 @@ export const useUploadForm = () => {
     clearFormData,
     setSelectedTags,
     setChapters,
-    setCoverImageUrl
+    setCoverImageUrl,
+    handleEpubFileSelect 
   };
 };

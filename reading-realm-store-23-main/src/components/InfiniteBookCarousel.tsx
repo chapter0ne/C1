@@ -52,20 +52,20 @@ const InfiniteBookCarousel = ({
       const deltaX = Math.abs(touch.clientX - touchStartX);
       const deltaY = Math.abs(touch.clientY - touchStartY);
       
+      // Only determine scroll direction after a minimum movement
+      if (deltaX < 5 && deltaY < 5) return;
+      
       // Determine if this is a horizontal scroll gesture
-      if (deltaX > deltaY && deltaX > 10) {
+      if (deltaX > deltaY && deltaX > 15) {
         isHorizontalScroll = true;
-      } else if (deltaY > deltaX && deltaY > 10) {
+      } else if (deltaY > deltaX && deltaY > 15) {
         isHorizontalScroll = false;
       }
       
-      // If it's not a horizontal scroll, allow vertical scrolling
-      if (!isHorizontalScroll) {
-        return;
+      // Only prevent default for clear horizontal scrolling
+      if (isHorizontalScroll && deltaX > 20) {
+        e.preventDefault();
       }
-      
-      // Prevent default only for horizontal scrolling
-      e.preventDefault();
     };
 
     const handleScroll = () => {
@@ -145,7 +145,7 @@ const InfiniteBookCarousel = ({
             className="flex gap-3 overflow-x-auto pb-1 px-2 scrollbar-hide"
             style={{ 
               scrollBehavior: 'smooth',
-              touchAction: 'manipulation',
+              touchAction: 'pan-x pan-y',
               overscrollBehavior: 'contain',
               WebkitOverflowScrolling: 'touch',
             }}
@@ -171,7 +171,7 @@ const InfiniteBookCarousel = ({
             className="flex gap-3 overflow-x-auto pb-1 px-2 scrollbar-hide scroll-smooth"
             style={{ 
               scrollBehavior: 'smooth',
-              touchAction: 'manipulation',
+              touchAction: 'pan-x pan-y',
               overscrollBehavior: 'contain',
               WebkitOverflowScrolling: 'touch',
             }}

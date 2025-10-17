@@ -16,7 +16,14 @@ import { useUserData } from '@/contexts/OptimizedUserDataContext';
 const BookCarouselSkeleton = () => (
   <>
     {/* Mobile: Horizontal scroll skeleton */}
-    <div className="flex gap-4 overflow-x-auto pb-2 md:hidden">
+    <div 
+      className="flex gap-4 overflow-x-auto pb-2 md:hidden"
+      style={{
+        touchAction: 'pan-x pan-y',
+        overscrollBehavior: 'contain',
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="w-32 h-48 bg-gray-200 animate-pulse rounded-lg flex-shrink-0" />
       ))}
@@ -275,7 +282,14 @@ const Index = () => {
       <section className="bg-white px-1 md:px-4 pb-2 md:pb-6">
         <div className="max-w-7xl mx-auto">
           {/* Mobile: Horizontal scroll */}
-          <div className="flex gap-1 md:gap-2 overflow-x-auto pb-1 md:pb-2 scrollbar-hide md:hidden">
+          <div 
+            className="flex gap-1 md:gap-2 overflow-x-auto pb-1 md:pb-2 scrollbar-hide md:hidden"
+            style={{
+              touchAction: 'pan-x pan-y',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
             {categories.map((category, index) => (
               <div key={category} className="flex-shrink-0">
                 <Button

@@ -72,7 +72,6 @@ const userLibraryRoutes = require('./routes/userLibrary');
 const readingListRoutes = require('./routes/reading-lists');
 const wishlistRoutes = require('./routes/wishlist');
 const cartRoutes = require('./routes/cart');
-const webhookRoutes = require('./routes/webhooks');
 
 app.use(logger);
 
@@ -90,7 +89,6 @@ app.use('/api/user-library', userLibraryRoutes);
 app.use('/api/reading-lists', readingListRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/webhooks', webhookRoutes);
 app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
 app.use('/api/upload', uploadRoutes);
 
@@ -103,5 +101,5 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 }); 

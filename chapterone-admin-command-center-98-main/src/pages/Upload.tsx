@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import UploadHeader from "@/components/upload/UploadHeader";
 import UploadNavigation from "@/components/upload/UploadNavigation";
@@ -10,9 +10,11 @@ import { useUploadForm } from "@/hooks/useUploadForm";
 import { useUploadValidation } from "@/hooks/useUploadValidation";
 import { useUploadActions } from "@/components/upload/UploadActions";
 import { api } from "@/utils/api";
+import { uploadBookCover } from "@/utils/storage";
 
 const Upload = () => {
   const { bookId } = useParams<{ bookId?: string }>();
+  const navigate = useNavigate();
   const [isLoadingBook, setIsLoadingBook] = useState(false);
   const [editBookData, setEditBookData] = useState<any>(null);
   const [editChapters, setEditChapters] = useState<any[]>([]);
@@ -24,6 +26,7 @@ const Upload = () => {
     selectedTags,
     chapters,
     coverImageUrl,
+    selectedEpubFile,
     handleTagToggle,
     handleInputChange,
     handleChapterSave,
@@ -32,7 +35,8 @@ const Upload = () => {
     clearFormData,
     setSelectedTags,
     setChapters,
-    setCoverImageUrl
+    setCoverImageUrl,
+    handleEpubFileSelect
   } = useUploadForm();
 
   // Fetch book and chapters if editing
@@ -95,7 +99,7 @@ const Upload = () => {
     isStep2Valid,
     isStep3Valid,
     isStepAccessible
-  } = useUploadValidation(formData, selectedTags, chapters, coverImageUrl);
+  } = useUploadValidation(formData, selectedTags, chapters, coverImageUrl, selectedEpubFile);
 
   const {
     currentStep,
@@ -118,6 +122,7 @@ const Upload = () => {
     toast.success('Chapter deleted successfully!');
   };
 
+
   const handleSaveDraftWithData = () => {
     console.log('handleSaveDraftWithData called with:', { formData, chapters, selectedTags });
     console.log('Current step:', currentStep);
@@ -126,8 +131,92 @@ const Upload = () => {
     handleSaveDraft(formData, chapters, selectedTags);
   };
 
-  const handlePublishWithData = () => {
-    console.log('handlePublishWithData called with:', { formData, chapters, selectedTags });
+  const handlePublishWithData = async () => {
+    console.log('handlePublishWithData called with:', { formData, chapters, selectedTags, selectedEpubFile });
+    
+    // If there's an EPUB file selected, upload it first
+    if (selectedEpubFile) {
+      try {
+        // Step 1: Upload cover image to Cloudinary if available
+        let uploadedCoverUrl = null;
+        
+        // Check if we have a cover image file to upload
+        if (formData.coverImage) {
+          toast.info('Uploading cover image...');
+          try {
+            uploadedCoverUrl = await uploadBookCover(formData.coverImage);
+            console.log('Cover image uploaded to Cloudinary:', uploadedCoverUrl);
+          } catch (error) {
+            console.error('Failed to upload cover image:', error);
+            toast.error('Failed to upload cover image');
+            return;
+          }
+        } else if (coverImageUrl && !coverImageUrl.startsWith('blob:')) {
+          // Use existing Cloudinary URL if it's not a blob URL
+          uploadedCoverUrl = coverImageUrl;
+        }
+        
+        // Step 2: Upload EPUB with all metadata
+        toast.info('Uploading EPUB file...');
+        
+        const formDataForUpload = new FormData();
+        formDataForUpload.append('epub', selectedEpubFile);
+        formDataForUpload.append('title', formData.title);
+        formDataForUpload.append('author', formData.author);
+        formDataForUpload.append('description', formData.description);
+        formDataForUpload.append('genre', formData.genre);
+        formDataForUpload.append('isbn', formData.isbn);
+        formDataForUpload.append('price', formData.price);
+        formDataForUpload.append('isFree', formData.isFree.toString());
+        formDataForUpload.append('status', 'published');
+        
+        // Add tags as JSON string
+        if (selectedTags && selectedTags.length > 0) {
+          formDataForUpload.append('tags', JSON.stringify(selectedTags));
+        }
+        
+        // Add cover image URL (from Cloudinary)
+        if (uploadedCoverUrl) {
+          formDataForUpload.append('coverImageUrl', uploadedCoverUrl);
+        }
+        
+        console.log('Uploading EPUB with data:', {
+          title: formData.title,
+          author: formData.author,
+          genre: formData.genre,
+          tags: selectedTags,
+          hasCoverImage: !!uploadedCoverUrl,
+          coverImageUrl: uploadedCoverUrl
+        });
+
+        const token = localStorage.getItem('token');
+        // Use local backend for EPUB uploads since the deployed backend doesn't have this endpoint yet
+        const API_BASE = 'http://localhost:5000';
+        
+        const response = await fetch(`${API_BASE}/api/books/upload-epub`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formDataForUpload
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          toast.success('EPUB book published successfully!');
+          navigate("/books");
+          return;
+        } else {
+          throw new Error('EPUB upload failed');
+        }
+      } catch (error) {
+        console.error('EPUB upload error:', error);
+        toast.error('Failed to publish EPUB book');
+        return;
+      }
+    }
+    
+    // Fall back to regular chapter-based publishing
     handlePublish(formData, chapters, selectedTags);
   };
 
@@ -235,6 +324,8 @@ const Upload = () => {
           onStepNavigation={(stepNumber) => handleStepNavigation(stepNumber, Boolean(isStep1Valid()), Boolean(isStep2Valid()))}
           isStepAccessible={isStepAccessible}
           isStep1Valid={() => Boolean(isStep1Valid())}
+          onEpubFileSelect={handleEpubFileSelect}
+          selectedEpubFile={selectedEpubFile}
         />
         
         <UploadNavigation

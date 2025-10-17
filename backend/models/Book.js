@@ -10,6 +10,24 @@ const bookSchema = new mongoose.Schema({
   price: { type: Number, default: 0 },
   isFree: { type: Boolean, default: false },
   coverImageUrl: { type: String },
+  
+  // EPUB-specific fields
+  epubFileUrl: { type: String }, // Cloudinary URL for the EPUB file
+  epubPublicId: { type: String }, // Cloudinary public ID for management
+  epubMetadata: {
+    language: String,
+    publisher: String,
+    publicationDate: Date,
+    isbn: String,
+    rights: String,
+    description: String,
+    tableOfContents: [{
+      title: String,
+      href: String,
+      level: Number
+    }]
+  },
+  
   status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
   rating: { type: Number, default: 5.0, min: 0, max: 5 }, // Default 5 stars
   totalRatings: { type: Number, default: 0 }, // Count of ratings

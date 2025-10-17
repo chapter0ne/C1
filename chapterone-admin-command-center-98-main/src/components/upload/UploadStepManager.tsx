@@ -32,6 +32,8 @@ interface UploadStepManagerProps {
   onStepNavigation: (stepNumber: number) => void;
   isStepAccessible: (stepNumber: number) => boolean;
   isStep1Valid: () => boolean;
+  onEpubFileSelect: (file: File | null) => void;
+  selectedEpubFile?: File | null;
 }
 
 const steps = [{
@@ -41,7 +43,7 @@ const steps = [{
 }, {
   number: 2,
   title: "Book Content",
-  description: "Chapters and content"
+  description: "Upload EPUB or add chapters"
 }, {
   number: 3,
   title: "Pricing",
@@ -62,7 +64,9 @@ const UploadStepManager = ({
   onPublish,
   onStepNavigation,
   isStepAccessible,
-  isStep1Valid
+  isStep1Valid,
+  onEpubFileSelect,
+  selectedEpubFile
 }: UploadStepManagerProps) => {
   const renderStepContent = () => {
     console.log('UploadStepManager renderStepContent - currentStep:', currentStep);
@@ -89,7 +93,9 @@ const UploadStepManager = ({
             onChapterSave={onChapterSave} 
             onChapterDelete={onChapterDelete} 
             formData={formData} 
-            coverImageUrl={coverImageUrl} 
+            coverImageUrl={coverImageUrl}
+            onEpubFileSelect={onEpubFileSelect}
+            selectedEpubFile={selectedEpubFile}
           />
         );
       case 3:

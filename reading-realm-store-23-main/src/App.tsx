@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import BookDetails from "./pages/BookDetails";
 import { useAuth } from '@/contexts/AuthContext';
 import { OptimizedUserDataProvider } from '@/contexts/OptimizedUserDataContext';
+import '@/utils/viewportFix';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,15 +94,15 @@ const AppRoutes = () => {
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <OptimizedUserDataProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <OptimizedUserDataProvider>
             <AppRoutes />
-          </TooltipProvider>
-        </OptimizedUserDataProvider>
-      </AuthProvider>
+          </OptimizedUserDataProvider>
+        </AuthProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
