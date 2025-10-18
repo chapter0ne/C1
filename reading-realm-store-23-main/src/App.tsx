@@ -62,16 +62,11 @@ const ScrollRestoration = () => {
       saveScrollPosition(prevPath);
     }
 
-    // Restore scroll position of the current page
-    // Use a small delay to ensure the page content is rendered
-    const timeoutId = setTimeout(() => {
-      restoreScrollPosition(currentPath);
-    }, 50);
+    // Restore scroll position immediately to prevent visible jump
+    restoreScrollPosition(currentPath);
 
     // Update the previous path reference
     prevPathRef.current = currentPath;
-
-    return () => clearTimeout(timeoutId);
   }, [location.pathname]);
 
   return null;

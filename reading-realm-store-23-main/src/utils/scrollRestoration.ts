@@ -48,23 +48,22 @@ export function restoreScrollPosition(pathname: string): void {
   const savedPosition = scrollPositions.get(pathname);
   
   if (savedPosition !== undefined) {
-    // Use requestAnimationFrame to ensure DOM is ready
+    // Immediately set scroll position to prevent jump
+    window.scrollTo(0, savedPosition);
+    
+    // Double-check after DOM updates
     requestAnimationFrame(() => {
-      window.scrollTo({
-        top: savedPosition,
-        behavior: 'instant' // Instant restore, no smooth scroll
+      requestAnimationFrame(() => {
+        if (window.scrollY !== savedPosition) {
+          window.scrollTo(0, savedPosition);
+        }
+        console.log(`✅ Restored scroll position for ${pathname}: ${savedPosition}px`);
       });
-      console.log(`✅ Restored scroll position for ${pathname}: ${savedPosition}px`);
     });
   } else {
     // First visit to this page - scroll to top
-    requestAnimationFrame(() => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'instant'
-      });
-      console.log(`🔝 First visit to ${pathname}, scrolled to top`);
-    });
+    window.scrollTo(0, 0);
+    console.log(`🔝 First visit to ${pathname}, scrolled to top`);
   }
 }
 
