@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
@@ -27,6 +27,8 @@ import NotFound from "./pages/NotFound";
 import BookDetails from "./pages/BookDetails";
 import { useAuth } from '@/contexts/AuthContext';
 import { OptimizedUserDataProvider } from '@/contexts/OptimizedUserDataContext';
+import { saveScrollPosition, restoreScrollPosition } from '@/utils/scrollRestoration';
+import { useEffect, useRef } from 'react';
 import '@/utils/viewportFix';
 
 const queryClient = new QueryClient({
@@ -46,6 +48,35 @@ const queryClient = new QueryClient({
   },
 });
 
+// Component to handle scroll restoration (must be inside Router)
+const ScrollRestoration = () => {
+  const location = useLocation();
+  const prevPathRef = useRef<string>(location.pathname);
+
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const prevPath = prevPathRef.current;
+
+    // Save scroll position of the previous page
+    if (prevPath !== currentPath) {
+      saveScrollPosition(prevPath);
+    }
+
+    // Restore scroll position of the current page
+    // Use a small delay to ensure the page content is rendered
+    const timeoutId = setTimeout(() => {
+      restoreScrollPosition(currentPath);
+    }, 50);
+
+    // Update the previous path reference
+    prevPathRef.current = currentPath;
+
+    return () => clearTimeout(timeoutId);
+  }, [location.pathname]);
+
+  return null;
+};
+
 const AppRoutes = () => {
   const { loading, user } = useAuth();
   
@@ -63,6 +94,7 @@ const AppRoutes = () => {
 
   return (
     <BrowserRouter>
+      <ScrollRestoration />
       <Routes>
         {/* Redirect to auth if not authenticated, otherwise show homepage */}
         <Route path="/" element={
