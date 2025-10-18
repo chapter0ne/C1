@@ -1,5 +1,5 @@
 
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useBookDetails, useBooks } from '@/hooks/useBooks';
 import { useReviews } from '@/hooks/useReviews';
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ const REVIEWS_PER_PAGE = 3;
 
 const BookDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: book, isLoading, error } = useBookDetails(id || '');
   const { data: allBooks = [] } = useBooks();
   const { user } = useAuth();
@@ -299,36 +300,30 @@ const BookDetails = () => {
                   </Button>
                 )}
                 <div className="flex w-full gap-2">
-                  {/* Wishlist Button: Disabled if book is in library or purchased */}
+                  {/* Read/Wishlist Button */}
                   <Button 
                     variant="outline" 
                     size="lg" 
                     className={`flex-1 rounded-lg ${
                       isInLibrary || isPurchased
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100' 
                         : isInWishlist 
                           ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
                           : ''
                     }`}
-                    onClick={isInLibrary || isPurchased ? undefined : handleWishlistAction}
-                    disabled={isInLibrary || isPurchased}
-                    title={isInLibrary || isPurchased ? (isPurchased ? "Purchased book - Cannot modify wishlist" : "Cannot modify wishlist for books in library") : ""}
+                    onClick={isInLibrary || isPurchased ? () => navigate(`/book/${book._id}/read`) : handleWishlistAction}
                   >
-                    <Heart className={`w-4 h-4 mr-2 ${
-                      isInLibrary || isPurchased
-                        ? 'text-gray-400' 
-                        : isInWishlist 
-                          ? 'fill-red-500 text-red-500' 
-                          : ''
-                    }`} />
-                    {isInLibrary 
-                      ? (isPurchased ? 'Purchased' : 'In Library')
-                      : isPurchased
-                        ? 'Purchased'
-                        : isInWishlist 
-                          ? 'Remove from Wishlist' 
-                          : 'Add to Wishlist'
-                    }
+                    {isInLibrary || isPurchased ? (
+                      <>
+                        <BookOpen className="w-4 h-4 mr-2 text-green-700" />
+                        Read
+                      </>
+                    ) : (
+                      <>
+                        <Heart className={`w-4 h-4 mr-2 ${isInWishlist ? 'fill-red-500 text-red-500' : ''}`} />
+                        {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>

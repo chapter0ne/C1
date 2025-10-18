@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, BookOpen, Heart, Star, User } from "lucide-react";
+import { Search, BookOpen, Heart, Star, User, ShoppingCart } from "lucide-react";
 import InfiniteBookCarousel from "@/components/InfiniteBookCarousel";
 import BookCard from "@/components/BookCard";
 import { useToast } from "@/hooks/use-toast";
@@ -206,11 +206,15 @@ const Index = () => {
             <div className="flex items-center space-x-2">
               {user ? (
                 <>
-                  <Link to="/cart" className="hidden md:block">
-                    <Button variant="ghost" size="sm" className="rounded-full p-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.68 8.32M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z" />
-                      </svg>
+                  {/* Cart button for both mobile and desktop */}
+                  <Link to="/cart" className="relative">
+                    <Button variant="ghost" size="sm" className="rounded-full p-2 border-2 border-[#D01E1E] hover:bg-red-50">
+                      <ShoppingCart className="w-5 h-5 text-[#D01E1E]" />
+                      {cart.items && cart.items.length > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-[#D01E1E] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                          {cart.items.length}
+                        </span>
+                      )}
                     </Button>
                   </Link>
                   <Link to="/search" className="hidden md:block">

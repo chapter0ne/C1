@@ -456,12 +456,18 @@ const EnhancedBrowseBooks = () => {
             >
               <Filter className="w-5 h-5 text-gray-400" />
               <span className="text-gray-700">Filters</span>
-              <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${showMobileFilters ? 'rotate-180' : ''}`} />
             </button>
           </div>
 
-          {/* Filter Section */}
-          <div className={`bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 ${showMobileFilters ? 'block' : 'hidden md:block'}`}>
+          {/* Filter Section with smooth animation */}
+          <div 
+            className={`bg-white rounded-xl shadow-sm border border-gray-100 md:block overflow-hidden transition-all duration-300 ease-in-out ${
+              showMobileFilters 
+                ? 'max-h-[1000px] opacity-100 p-3 md:p-6 mb-4 md:mb-0' 
+                : 'max-h-0 opacity-0 md:max-h-none md:opacity-100 md:p-6 p-0'
+            }`}
+          >
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 md:gap-6">
               {/* Price Filter */}
               <div className="flex-shrink-0">
@@ -490,7 +496,11 @@ const EnhancedBrowseBooks = () => {
                   {categories.map((category) => (
                     <button
                       key={category}
-                      onClick={() => setSelectedCategory(selectedCategory === category ? 'All' : category)}
+                      onClick={() => {
+                        setSelectedCategory(selectedCategory === category ? 'All' : category);
+                        // Auto-close filters on mobile when a category is selected
+                        setShowMobileFilters(false);
+                      }}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
                         selectedCategory === category
                           ? 'bg-[#D01E1E] text-white border-[#D01E1E]'

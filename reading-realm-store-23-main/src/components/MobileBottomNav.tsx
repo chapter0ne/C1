@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, ShoppingCart, Search, Heart, List } from "lucide-react";
+import { BookOpen, Home, Search, Heart, List } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const MobileBottomNav = () => {
@@ -23,17 +23,16 @@ const MobileBottomNav = () => {
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
       <div className="flex justify-around items-center py-1 px-4">
-        {/* Left side - 2 buttons */}
+        {/* Home button */}
+        <Link to="/" className="flex flex-col items-center p-1 flex-1">
+          <Home className={getIconClass('/')} />
+          <span className={getTextClass('/')}>Home</span>
+        </Link>
+        
+        {/* Explore button */}
         <Link to="/explore" className="flex flex-col items-center p-1 flex-1">
           <BookOpen className={getIconClass('/explore')} />
           <span className={getTextClass('/explore')}>Explore</span>
-        </Link>
-        
-        <Link to="/library" className="flex flex-col items-center p-1 flex-1">
-          <svg className={getIconClass('/library')} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012 2v2M7 7h10" />
-          </svg>
-          <span className={getTextClass('/library')}>Library</span>
         </Link>
 
         {/* Central Search Button */}
@@ -43,12 +42,15 @@ const MobileBottomNav = () => {
           </div>
         </Link>
         
-        {/* Right side - 2 buttons */}
-        <Link to="/cart" className="flex flex-col items-center p-1 flex-1">
-          <ShoppingCart className={getIconClass('/cart')} />
-          <span className={getTextClass('/cart')}>Cart</span>
+        {/* Library button */}
+        <Link to="/library" className="flex flex-col items-center p-1 flex-1">
+          <svg className={getIconClass('/library')} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <span className={getTextClass('/library')}>Library</span>
         </Link>
         
+        {/* Wishlist button */}
         <Link to="/wishlist" className="flex flex-col items-center p-1 flex-1">
           <Heart className={getIconClass('/wishlist')} />
           <span className={getTextClass('/wishlist')}>Wishlist</span>

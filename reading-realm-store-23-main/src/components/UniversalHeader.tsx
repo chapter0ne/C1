@@ -79,23 +79,27 @@ const UniversalHeader = ({ currentPage }: UniversalHeaderProps) => {
                 <Search className="w-5 h-5 text-[#D01E1E] hover:text-[#B01818]" />
               </Link>
               <Link to="/cart" className="relative">
-                <ShoppingCart className="w-5 h-5 text-gray-600 hover:text-[#D01E1E]" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#D01E1E] text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold min-w-[18px] text-center">
-                    {cartCount}
-                  </span>
-                )}
+                <Button variant="ghost" size="sm" className="rounded-full p-2 border-2 border-[#D01E1E] hover:bg-red-50">
+                  <ShoppingCart className="w-5 h-5 text-[#D01E1E]" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#D01E1E] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                      {cartCount}
+                    </span>
+                  )}
+                </Button>
               </Link>
             </div>
             {/* Mobile: Only Cart icon */}
             <div className="md:hidden flex items-center">
               <Link to="/cart" className="relative">
-                <ShoppingCart className="w-5 h-5 text-gray-600 hover:text-[#D01E1E]" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#D01E1E] text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold min-w-[18px] text-center">
-                    {cartCount}
-                  </span>
-                )}
+                <Button variant="ghost" size="sm" className="rounded-full p-2 border-2 border-[#D01E1E] hover:bg-red-50">
+                  <ShoppingCart className="w-5 h-5 text-[#D01E1E]" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#D01E1E] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                      {cartCount}
+                    </span>
+                  )}
+                </Button>
               </Link>
             </div>
           </div>
