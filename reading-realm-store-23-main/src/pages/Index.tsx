@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBooks } from '@/hooks/useBooks';
 import { useBestsellers, useEditorPicks } from '@/hooks/useFeaturedBooks';
 import { useUserData } from '@/contexts/OptimizedUserDataContext';
+import { getCoverImageUrl, hasCoverImage } from '@/utils/imageUtils';
 
 // Skeleton loader for book carousels
 const BookCarouselSkeleton = () => (
@@ -37,6 +38,114 @@ const BookCarouselSkeleton = () => (
     </div>
   </>
 );
+
+// Netflix-style Hero Component
+const NetflixStyleHero = ({ books }: { books: any[] }) => {
+  const navigate = useNavigate();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [zoomDirection, setZoomDirection] = useState<'in' | 'out'>('in');
+  const [animationKey, setAnimationKey] = useState(0);
+
+  useEffect(() => {
+    if (!books || books.length === 0) return;
+
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % books.length);
+        // Randomly choose zoom direction for next book
+        setZoomDirection(Math.random() > 0.5 ? 'in' : 'out');
+        // Force animation restart with key change
+        setAnimationKey((prev) => prev + 1);
+        setIsTransitioning(false);
+      }, 1000); // 1 second for smoother transition
+    }, 10000); // 10 seconds per book
+
+    return () => clearInterval(interval);
+  }, [books]);
+
+  if (!books || books.length === 0) return null;
+
+  const currentBook = books[currentIndex];
+  const bookCoverUrl = hasCoverImage(currentBook) ? getCoverImageUrl(currentBook) : null;
+  const summary = currentBook.description || currentBook.summary || '';
+  const truncatedSummary = summary.length > 200 ? summary.substring(0, 200) + '...' : summary;
+
+  return (
+    <section 
+      className="relative w-full lg:hidden overflow-hidden cursor-pointer bg-black"
+      style={{ height: '50vh' }}
+      onClick={() => navigate(`/book/${currentBook._id}`)}
+    >
+      {/* Background Image with Ken Burns Effect */}
+      <div 
+        key={animationKey}
+        className={`absolute inset-0 bg-cover bg-top transition-opacity duration-1000 ease-in-out ${
+          isTransitioning ? 'opacity-0' : 'opacity-100'
+        }`}
+        style={{
+          backgroundImage: bookCoverUrl ? `url(${bookCoverUrl})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          animation: zoomDirection === 'out' ? 'kenBurnsReverse 10s ease-out forwards' : 'kenBurns 10s ease-out forwards',
+        }}
+      />
+
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
+
+      {/* Content Overlay - Bottom Left */}
+      <div 
+        className={`absolute bottom-0 left-0 right-0 p-4 pb-6 pr-20 transition-opacity duration-1000 ease-in-out ${
+          isTransitioning ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
+        <h2 className="text-xl font-bold text-white mb-1 drop-shadow-lg">
+          {currentBook.title}
+        </h2>
+        <p className="text-xs text-gray-200 mb-2 drop-shadow-md">
+          by {currentBook.author}
+        </p>
+        <p className="text-xs text-gray-300 line-clamp-3 drop-shadow-md">
+          {truncatedSummary}
+        </p>
+      </div>
+
+      {/* Dot Indicators - Bottom Right */}
+      <div className="absolute bottom-6 right-6 flex gap-2 items-center">
+        {books.map((_, index) => (
+          <div
+            key={index}
+            className={`transition-all duration-300 ${
+              index === currentIndex
+                ? 'w-6 h-1 bg-[#D01E1E] rounded-full'
+                : 'w-1 h-1 bg-white/60 rounded-full'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* CSS for Ken Burns Effect */}
+      <style>{`
+        @keyframes kenBurns {
+          0% {
+            transform: scale(1.05);
+          }
+          100% {
+            transform: scale(1.15);
+          }
+        }
+        @keyframes kenBurnsReverse {
+          0% {
+            transform: scale(1.15);
+          }
+          100% {
+            transform: scale(1.05);
+          }
+        }
+      `}</style>
+    </section>
+  );
+};
 
 const Index = () => {
   const navigate = useNavigate();
@@ -239,7 +348,11 @@ const Index = () => {
         </div>
       </header>
 
-      <section className="relative bg-gradient-to-br from-gray-50 to-gray-100 py-6 md:py-20 px-2 md:px-6 lg:px-8">
+      {/* Netflix-style Hero Section - Mobile & Tablet */}
+      <NetflixStyleHero books={featuredBestsellers.slice(0, 5)} />
+
+      {/* Desktop Hero - Keep original */}
+      <section className="relative bg-gradient-to-br from-gray-50 to-gray-100 py-6 md:py-20 px-2 md:px-6 lg:px-8 hidden lg:block">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <div className="flex justify-center mb-2 md:mb-8">
@@ -283,7 +396,7 @@ const Index = () => {
         </div>
       </section>
 
-      <section className="bg-white px-1 md:px-4 pb-2 md:pb-6">
+      <section className="bg-white px-1 md:px-4 pb-2 md:pb-6 pt-4 md:pt-6">
         <div className="max-w-7xl mx-auto">
           {/* Mobile: Horizontal scroll */}
           <div 
