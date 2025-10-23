@@ -190,8 +190,8 @@ const Upload = () => {
         });
 
         const token = localStorage.getItem('token');
-        // Use local backend for EPUB uploads since the deployed backend doesn't have this endpoint yet
-        const API_BASE = 'http://localhost:5000';
+        // Use the same API base as the rest of the application
+        const API_BASE = (window as any)._env_?.API_BASE || 'https://backend-8zug.onrender.com';
         
         const response = await fetch(`${API_BASE}/api/books/upload-epub`, {
           method: 'POST',
