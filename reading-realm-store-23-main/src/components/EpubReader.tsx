@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, ZoomIn, ZoomOut, Menu, X, Settings, Sun, Sunset, Moon, Hand, Fingerprint, ChevronDown, Type } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, ZoomIn, ZoomOut, Menu, X, Settings, Sun, Sunset, Moon, Hand, Fingerprint, ChevronDown, Type, ScrollText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ePub, { Book, Rendition } from "epubjs";
+import WebGLPageCurl from "./WebGLPageCurl";
 
 interface EpubReaderProps {
   epubUrl: string;
@@ -33,10 +34,18 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
     const saved = localStorage.getItem('epub-reader-theme');
     return (saved as 'morning' | 'evening' | 'midnight') || 'morning';
   });
-  const [readMode, setReadMode] = useState<'tap' | 'flip'>(() => {
+  const [readMode, setReadMode] = useState<'tap' | 'scroll' | 'flip'>(() => {
     const saved = localStorage.getItem('epub-reader-readMode');
-    return (saved as 'tap' | 'flip') || 'tap';
+    return (saved as 'tap' | 'scroll' | 'flip') || 'tap';
   });
+  const [flipStyle, setFlipStyle] = useState<'deck' | 'curl'>(() => {
+    const saved = localStorage.getItem('epub-reader-flipStyle');
+    return (saved as 'deck' | 'curl') || 'curl';
+  });
+  const [showFlipOptions, setShowFlipOptions] = useState(false);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const swipeStartTime = useRef<number>(0);
+  const swipeStartX = useRef<number>(0);
   const [selectedFont, setSelectedFont] = useState<string>(() => {
     const saved = localStorage.getItem('epub-reader-font');
     return saved || 'Original';
@@ -50,6 +59,7 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
   const renditionRef = useRef<Rendition | null>(null);
   const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tapIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const renderStableRef = useRef<boolean>(false);
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
   const isNavigating = useRef<boolean>(false);
@@ -167,7 +177,15 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
     if (readMode === 'tap') {
       showTapIndicatorsTemporarily();
     }
+    // Close flip options when switching away from flip mode
+    if (readMode !== 'flip') {
+      setShowFlipOptions(false);
+    }
   }, [readMode]);
+
+  useEffect(() => {
+    localStorage.setItem('epub-reader-flipStyle', flipStyle);
+  }, [flipStyle]);
 
   useEffect(() => {
     localStorage.setItem('epub-reader-font', selectedFont);
@@ -206,14 +224,45 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
       const width = viewerRef.current.clientWidth;
       const height = viewerRef.current.clientHeight;
 
-      // Create rendition
+      // Create rendition with dynamic flow based on read mode
       const rendition = book.renderTo(viewerRef.current, {
         width: width,
-        height: height,
+        height: readMode === 'scroll' ? undefined : height, // Auto height for scroll mode
         spread: "none",
-        flow: "paginated",
+        flow: readMode === 'scroll' ? "scrolled-doc" : "paginated",
+        allowScriptedContent: true, // Required for EPUB.js to work properly
+        manager: "default", // Explicitly set manager
       });
       renditionRef.current = rendition;
+      
+      // For scroll mode, ensure full content renders and prevent glitching
+      if (readMode === 'scroll') {
+        rendition.themes.default({
+          "html": {
+            "overflow": "visible !important",
+            "height": "auto !important",
+            "-webkit-overflow-scrolling": "touch !important",
+          },
+          "body": {
+            "overflow": "visible !important", 
+            "height": "auto !important",
+            "padding": "20px !important",
+            "transform": "translate3d(0,0,0) !important",
+            "-webkit-transform": "translate3d(0,0,0) !important",
+            "will-change": "transform !important",
+          },
+          "p, div, span, h1, h2, h3, h4, h5, h6": {
+            "transform": "translateZ(0) !important",
+            "-webkit-font-smoothing": "antialiased !important",
+            "-moz-osx-font-smoothing": "grayscale !important",
+          }
+        });
+        
+        // Mark render as stable after a short delay
+        setTimeout(() => {
+          renderStableRef.current = true;
+        }, 500);
+      }
 
         // Add content protection styles to the rendered EPUB
         rendition.themes.default({
@@ -227,6 +276,17 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
             "user-select": "none !important",
             "-webkit-touch-callout": "none !important",
           },
+          // Prevent layout shifts during deck transitions
+          "html, body": {
+            "overflow-x": "hidden !important",
+            "width": "100% !important",
+            "position": "relative !important",
+          },
+          "body": {
+            "will-change": "transform !important",
+            "backface-visibility": "hidden !important",
+            "-webkit-backface-visibility": "hidden !important",
+          }
         });
 
         // Display the book
@@ -256,6 +316,7 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
           
           // Track current chapter
           if (location.start.href) {
+            const prevChapterHref = currentChapterHref;
             setCurrentChapterHref(location.start.href);
             
             // Find chapter title from TOC
@@ -265,6 +326,16 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
             );
             if (chapterItem) {
               setCurrentChapterTitle(chapterItem.label);
+            }
+            
+            // Auto-scroll to top when chapter changes in scroll mode
+            if (readMode === 'scroll' && prevChapterHref && prevChapterHref !== location.start.href) {
+              setTimeout(() => {
+                const iframe = rendition.getContents()[0];
+                if (iframe && iframe.window) {
+                  iframe.window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }, 100);
             }
           }
           
@@ -322,7 +393,7 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
         renditionRef.current.destroy();
       }
     };
-  }, [epubUrl, bookId]);
+  }, [epubUrl, bookId, readMode]);
 
   // Apply theme to EPUB content
   useEffect(() => {
@@ -419,18 +490,17 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
         setTimeout(() => setTapShadowSide(null), 400);
       }
       
-      // Apply soft blink effect for tap mode
+      // Apply animation based on read mode
+      const iframe = renditionRef.current.getContents()[0];
+      
       if (readMode === 'tap') {
-        const iframe = renditionRef.current.getContents()[0];
+        // Soft fade for tap mode
         if (iframe && iframe.document && iframe.document.body) {
-          // Soft fade out
           iframe.document.body.style.transition = 'opacity 0.2s ease-out';
           iframe.document.body.style.opacity = '0';
           
           setTimeout(() => {
             renditionRef.current?.prev();
-            
-            // Soft fade in
             setTimeout(() => {
               if (iframe.document && iframe.document.body) {
                 iframe.document.body.style.opacity = '1';
@@ -440,14 +510,59 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
         } else {
           renditionRef.current.prev();
         }
+      } else if (readMode === 'flip') {
+        // Enhanced page curl animation for flip mode
+        if (iframe && iframe.document && iframe.document.body) {
+          const isAdvancedCurl = flipStyle === 'curl';
+          
+          if (isAdvancedCurl) {
+            // Advanced curl with shadow effects
+            iframe.document.body.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.6s ease, box-shadow 0.6s ease';
+            iframe.document.body.style.transformOrigin = 'right center';
+            iframe.document.body.style.transform = 'perspective(2000px) rotateY(180deg) translateZ(50px)';
+            iframe.document.body.style.opacity = '0.3';
+            iframe.document.body.style.boxShadow = '-20px 0 40px rgba(0,0,0,0.5)';
+          } else {
+            // Simple flip
+            iframe.document.body.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease';
+            iframe.document.body.style.transformOrigin = 'right center';
+            iframe.document.body.style.transform = 'perspective(2000px) rotateY(180deg)';
+            iframe.document.body.style.opacity = '0';
+          }
+          
+          setTimeout(() => {
+            renditionRef.current?.prev();
+            
+            setTimeout(() => {
+              if (iframe.document && iframe.document.body) {
+                iframe.document.body.style.transformOrigin = 'left center';
+                iframe.document.body.style.transform = isAdvancedCurl 
+                  ? 'perspective(2000px) rotateY(-180deg) translateZ(50px)'
+                  : 'perspective(2000px) rotateY(-180deg)';
+                iframe.document.body.style.opacity = isAdvancedCurl ? '0.3' : '0';
+                iframe.document.body.style.boxShadow = isAdvancedCurl ? '20px 0 40px rgba(0,0,0,0.5)' : 'none';
+                
+                setTimeout(() => {
+                  if (iframe.document && iframe.document.body) {
+                    iframe.document.body.style.transform = 'perspective(2000px) rotateY(0deg) translateZ(0)';
+                    iframe.document.body.style.opacity = '1';
+                    iframe.document.body.style.boxShadow = 'none';
+                  }
+                }, 50);
+              }
+            }, 50);
+          }, isAdvancedCurl ? 600 : 400);
+        } else {
+          renditionRef.current.prev();
+        }
       } else {
         renditionRef.current.prev();
       }
       
-      // Reset after 400ms to prevent multiple rapid page turns
+      // Reset after animation completes to prevent multiple rapid page turns
       setTimeout(() => {
         isNavigating.current = false;
-      }, 400);
+      }, readMode === 'flip' ? 500 : 400);
     }
   };
 
@@ -461,18 +576,17 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
         setTimeout(() => setTapShadowSide(null), 400);
       }
       
-      // Apply soft blink effect for tap mode
+      // Apply animation based on read mode
+      const iframe = renditionRef.current.getContents()[0];
+      
       if (readMode === 'tap') {
-        const iframe = renditionRef.current.getContents()[0];
+        // Soft fade for tap mode
         if (iframe && iframe.document && iframe.document.body) {
-          // Soft fade out
           iframe.document.body.style.transition = 'opacity 0.2s ease-out';
           iframe.document.body.style.opacity = '0';
           
           setTimeout(() => {
             renditionRef.current?.next();
-            
-            // Soft fade in
             setTimeout(() => {
               if (iframe.document && iframe.document.body) {
                 iframe.document.body.style.opacity = '1';
@@ -482,14 +596,59 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
         } else {
           renditionRef.current.next();
         }
+      } else if (readMode === 'flip') {
+        // Enhanced page curl animation for flip mode
+        if (iframe && iframe.document && iframe.document.body) {
+          const isAdvancedCurl = flipStyle === 'curl';
+          
+          if (isAdvancedCurl) {
+            // Advanced curl with shadow effects
+            iframe.document.body.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.6s ease, box-shadow 0.6s ease';
+            iframe.document.body.style.transformOrigin = 'left center';
+            iframe.document.body.style.transform = 'perspective(2000px) rotateY(-180deg) translateZ(50px)';
+            iframe.document.body.style.opacity = '0.3';
+            iframe.document.body.style.boxShadow = '20px 0 40px rgba(0,0,0,0.5)';
+          } else {
+            // Simple flip
+            iframe.document.body.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease';
+            iframe.document.body.style.transformOrigin = 'left center';
+            iframe.document.body.style.transform = 'perspective(2000px) rotateY(-180deg)';
+            iframe.document.body.style.opacity = '0';
+          }
+          
+          setTimeout(() => {
+            renditionRef.current?.next();
+            
+            setTimeout(() => {
+              if (iframe.document && iframe.document.body) {
+                iframe.document.body.style.transformOrigin = 'right center';
+                iframe.document.body.style.transform = isAdvancedCurl 
+                  ? 'perspective(2000px) rotateY(180deg) translateZ(50px)'
+                  : 'perspective(2000px) rotateY(180deg)';
+                iframe.document.body.style.opacity = isAdvancedCurl ? '0.3' : '0';
+                iframe.document.body.style.boxShadow = isAdvancedCurl ? '-20px 0 40px rgba(0,0,0,0.5)' : 'none';
+                
+                setTimeout(() => {
+                  if (iframe.document && iframe.document.body) {
+                    iframe.document.body.style.transform = 'perspective(2000px) rotateY(0deg) translateZ(0)';
+                    iframe.document.body.style.opacity = '1';
+                    iframe.document.body.style.boxShadow = 'none';
+                  }
+                }, 50);
+              }
+            }, 50);
+          }, isAdvancedCurl ? 600 : 400);
+        } else {
+          renditionRef.current.next();
+        }
       } else {
         renditionRef.current.next();
       }
       
-      // Reset after 400ms to prevent multiple rapid page turns
+      // Reset after animation completes to prevent multiple rapid page turns
       setTimeout(() => {
         isNavigating.current = false;
-      }, 400);
+      }, readMode === 'flip' ? 500 : 400);
     }
   };
 
@@ -519,7 +678,58 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
     const touch = e.touches[0];
     touchStartX.current = touch.clientX;
     touchStartY.current = touch.clientY;
+    swipeStartTime.current = Date.now();
+    
+    // For deck mode, start tracking swipe
+    if (readMode === 'flip' && flipStyle === 'deck') {
+      setIsSwiping(true);
+    }
+    
     console.log('👆 Touch Start:', { x: touch.clientX, y: touch.clientY, mode: readMode });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Don't interfere if TOC or Settings are open
+    if (showToc || showSettings) return;
+    
+    // Only track for deck flip mode
+    if (readMode !== 'flip' || flipStyle !== 'deck' || !isSwiping) return;
+    
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartX.current;
+    const deltaY = touch.clientY - touchStartY.current;
+    
+    // Only process horizontal swipes
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+      return;
+    }
+    
+    const viewerWidth = viewerRef.current?.clientWidth || window.innerWidth;
+    let progress = deltaX; // Use pixels, not percentage
+    
+    // Determine if we're at first or last page (for rubber band)
+    const atFirstPage = currentLocation === toc[0]?.href;
+    const atLastPage = currentLocation === toc[toc.length - 1]?.href;
+    
+    // Rubber band effect at edges
+    if ((progress > 0 && atFirstPage) || (progress < 0 && atLastPage)) {
+      progress = progress * 0.3; // 30% resistance
+    }
+    
+    // Clamp to screen width
+    progress = Math.max(-viewerWidth, Math.min(viewerWidth, progress));
+    
+    // Apply real-time transform and shadow (following finger)
+    const iframe = renditionRef.current?.getContents()[0];
+    if (iframe && iframe.document && iframe.document.body) {
+      iframe.document.body.style.transition = 'none';
+      iframe.document.body.style.transform = `translateX(${progress}px)`;
+      
+      // Progressive shadow based on distance
+      const shadowIntensity = Math.min(Math.abs(progress) / viewerWidth, 1);
+      const shadowDirection = progress < 0 ? '10px' : '-10px';
+      iframe.document.body.style.boxShadow = `${shadowDirection} 0 ${20 * shadowIntensity}px rgba(0, 0, 0, ${0.3 * shadowIntensity})`;
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -541,8 +751,74 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
       mode: readMode 
     });
     
-    if (readMode === 'flip') {
-      // Flip mode: swipe gestures
+    if (readMode === 'flip' && flipStyle === 'deck' && isSwiping) {
+      const iframe = renditionRef.current?.getContents()[0];
+      const swipeDistance = Math.abs(deltaX);
+      const swipePercentage = (swipeDistance / viewerWidth) * 100;
+      const swipeTime = Date.now() - swipeStartTime.current;
+      const swipeVelocity = swipeDistance / swipeTime; // pixels per ms
+      
+      // Determine if at edges
+      const atFirstPage = currentLocation === toc[0]?.href;
+      const atLastPage = currentLocation === toc[toc.length - 1]?.href;
+      
+      // Threshold: 30% of screen width OR fast velocity
+      const shouldTurnPage = swipePercentage > 30 || swipeVelocity > 0.5;
+      
+      // Don't turn page if at edges
+      const canTurnPage = !((deltaX > 0 && atFirstPage) || (deltaX < 0 && atLastPage));
+      
+      if (shouldTurnPage && canTurnPage) {
+        // Calculate velocity-based completion speed
+        let completionSpeed = 400; // default
+        if (swipeVelocity > 1) {
+          completionSpeed = 200; // fast swipe
+        } else if (swipeVelocity > 0.5) {
+          completionSpeed = 300; // medium swipe
+        }
+        
+        // Complete the page turn
+        if (iframe && iframe.document && iframe.document.body) {
+          // Slide off screen
+          const targetTransform = deltaX > 0 ? `${viewerWidth}px` : `-${viewerWidth}px`;
+          iframe.document.body.style.transition = `transform ${completionSpeed}ms ease-out, box-shadow ${completionSpeed}ms ease-out`;
+          iframe.document.body.style.transform = `translateX(${targetTransform})`;
+          
+          const shadowDirection = deltaX < 0 ? '10px' : '-10px';
+          iframe.document.body.style.boxShadow = `${shadowDirection} 0 20px rgba(0, 0, 0, 0.3)`;
+          
+          setTimeout(() => {
+            // Change page
+            if (deltaX > 0) {
+              renditionRef.current?.prev();
+            } else {
+              renditionRef.current?.next();
+            }
+            
+            // Reset transform after page change
+            setTimeout(() => {
+              const newIframe = renditionRef.current?.getContents()[0];
+              if (newIframe && newIframe.document && newIframe.document.body) {
+                newIframe.document.body.style.transition = 'none';
+                newIframe.document.body.style.transform = 'translateX(0)';
+                newIframe.document.body.style.boxShadow = 'none';
+                void newIframe.document.body.offsetHeight;
+              }
+            }, 50);
+          }, completionSpeed);
+        }
+      } else {
+        // Snap back to original position
+        if (iframe && iframe.document && iframe.document.body) {
+          iframe.document.body.style.transition = 'transform 300ms ease-out, box-shadow 300ms ease-out';
+          iframe.document.body.style.transform = 'translateX(0)';
+          iframe.document.body.style.boxShadow = 'none';
+        }
+      }
+      
+      setIsSwiping(false);
+    } else if (readMode === 'flip') {
+      // Flip mode: swipe gestures (for non-deck styles)
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
         console.log('✅ SWIPE:', deltaX > 0 ? 'RIGHT (prev)' : 'LEFT (next)');
         if (deltaX > 0) {
@@ -831,11 +1107,18 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
       `}</style>
       
       {/* Header */}
-      <div className={`border-b sticky top-0 z-50 shadow-sm transition-colors duration-300 ${
-        theme === 'morning' ? 'bg-white border-gray-200' :
-        theme === 'evening' ? 'bg-[#F5E6D3] border-[#8B4513]' :
-        'bg-[#1A1A1A] border-gray-700'
-      }`}>
+      <div 
+        className={`border-b ${readMode === 'scroll' ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-50 shadow-sm transition-all duration-300 ${
+          readMode === 'scroll' ? 'backdrop-blur-md' : ''
+        }`}
+        style={readMode === 'scroll' ? {
+          background: theme === 'midnight' ? 'rgba(24,24,24,0.2)' : 'rgba(255,255,255,0.2)',
+          borderBottom: theme === 'midnight' ? '1px solid rgba(51,51,51,0.2)' : '1px solid rgba(238,238,238,0.2)'
+        } : {
+          backgroundColor: theme === 'morning' ? '#FFFFFF' : theme === 'evening' ? '#F5E6D3' : '#1A1A1A',
+          borderColor: theme === 'morning' ? '#E5E7EB' : theme === 'evening' ? '#8B4513' : '#374151'
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -854,39 +1137,51 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
                   'text-gray-100'
                 }`}>{bookTitle}</h1>
                 <div className="flex flex-col items-center gap-2">
-                  <p className={`text-sm transition-colors duration-300 ${
-                    theme === 'morning' ? 'text-gray-500' :
-                    theme === 'evening' ? 'text-amber-700' :
-                    'text-gray-400'
-                  }`}>
-                    {totalBookLocations > 0 ? 
-                      `Location ${currentLocationIndex + 1} of ${totalBookLocations}` : 
-                      `Page ${currentPage} of ${totalPages || "..."}`
-                    }
-                  </p>
-                  
-                  {/* Progress Bar */}
-                  {totalPages > 1 && (
-                    <div className="w-full max-w-xs">
-                      <div className={`w-full h-1.5 rounded-full transition-colors duration-300 ${
-                        theme === 'morning' ? 'bg-gray-200' :
-                        theme === 'evening' ? 'bg-amber-200' :
-                        'bg-gray-600'
-                      }`}>
-                        <div 
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            theme === 'morning' ? 'bg-[#D01E1E]' :
-                            theme === 'evening' ? 'bg-amber-600' :
-                            'bg-gray-300'
-                          }`}
-                          style={{
-                            width: totalBookLocations > 0 ? 
-                              `${(currentLocationIndex / (totalBookLocations - 1)) * 100}%` : 
-                              `${((currentPage - 1) / (totalPages - 1)) * 100}%`
-                          }}
-                        />
+                  {readMode === 'scroll' ? (
+                    <>
+                      {/* Progress Bar for scroll mode - based on chapter progress through book */}
+                      <div className="w-full max-w-xs">
+                        <div className={`w-full h-1.5 rounded-full transition-colors duration-300 ${
+                          theme === 'morning' ? 'bg-gray-200' :
+                          theme === 'evening' ? 'bg-amber-200' :
+                          'bg-gray-600'
+                        }`}>
+                          <div 
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              theme === 'morning' ? 'bg-[#D01E1E]' :
+                              theme === 'evening' ? 'bg-amber-600' :
+                              'bg-gray-300'
+                            }`}
+                            style={{
+                              width: toc.length > 0 
+                                ? `${Math.round((toc.findIndex(item => item.href === currentChapterHref) / (toc.length - 1)) * 100)}%`
+                                : '0%'
+                            }}
+                          />
+                        </div>
+                        <div className={`text-xs mt-1 transition-colors duration-300 ${
+                          theme === 'morning' ? 'text-gray-500' :
+                          theme === 'evening' ? 'text-amber-700' :
+                          'text-gray-400'
+                        }`}>
+                          {toc.length > 0
+                            ? `${Math.round((toc.findIndex(item => item.href === currentChapterHref) / (toc.length - 1)) * 100)}%`
+                            : '0%'
+                          }
+                        </div>
                       </div>
-                    </div>
+                    </>
+                  ) : (
+                    <p className={`text-sm transition-colors duration-300 ${
+                      theme === 'morning' ? 'text-gray-500' :
+                      theme === 'evening' ? 'text-amber-700' :
+                      'text-gray-400'
+                    }`}>
+                      {totalBookLocations > 0 ? 
+                        `Location ${currentLocationIndex + 1} of ${totalBookLocations}` : 
+                        `Page ${currentPage} of ${totalPages || "..."}`
+                      }
+                    </p>
                   )}
                 </div>
               </div>
@@ -929,7 +1224,12 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
               'bg-[#1A1A1A]'
             }`}
               style={{ 
-                height: "calc(-webkit-fill-available - 64px - 60px)",
+                height: readMode === 'scroll' ? '100vh' : "calc(-webkit-fill-available - 64px - 60px)",
+                paddingTop: readMode === 'scroll' ? '64px' : undefined,
+                paddingBottom: readMode === 'scroll' ? '80px' : undefined,
+                overflow: readMode === 'scroll' ? 'visible' : undefined,
+                WebkitOverflowScrolling: readMode === 'scroll' ? 'touch' : undefined,
+                scrollBehavior: readMode === 'scroll' ? 'smooth' : undefined,
                 userSelect: "none",
               WebkitUserSelect: "none",
               MozUserSelect: "none",
@@ -937,8 +1237,8 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
               WebkitTouchCallout: "none",
             }}
           >
-            {/* Invisible touch overlay - only active when TOC/Settings are closed */}
-            {!showToc && !showSettings && (
+            {/* Invisible touch overlay - only active when TOC/Settings are closed and NOT in scroll mode */}
+            {!showToc && !showSettings && readMode !== 'scroll' && (
               <div
                 style={{
                   position: 'absolute',
@@ -948,10 +1248,11 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
                   bottom: 0,
                   zIndex: 999,
                   background: 'transparent',
-                  cursor: readMode === 'tap' ? 'pointer' : 'default',
+                  cursor: readMode === 'tap' ? 'pointer' : (readMode === 'flip' && flipStyle === 'deck' ? 'grab' : 'default'),
                 }}
                 onClick={handleMouseClick}
                 onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
               />
             )}
@@ -1048,11 +1349,18 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
           </div>
 
           {/* Navigation Controls */}
-          <div className={`border-t p-4 transition-colors duration-300 ${
-            theme === 'morning' ? 'bg-white border-gray-200' :
-            theme === 'evening' ? 'bg-[#F5E6D3] border-[#8B4513]' :
-            'bg-[#1A1A1A] border-gray-700'
-          }`}>
+          <div 
+            className={`border-t p-4 transition-all duration-300 ${
+              readMode === 'scroll' ? 'fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md' : ''
+            }`}
+            style={readMode === 'scroll' ? {
+              background: theme === 'midnight' ? 'rgba(24,24,24,0.2)' : 'rgba(255,255,255,0.2)',
+              borderTop: theme === 'midnight' ? '1px solid rgba(51,51,51,0.2)' : '1px solid rgba(238,238,238,0.2)'
+            } : {
+              backgroundColor: theme === 'morning' ? '#FFFFFF' : theme === 'evening' ? '#F5E6D3' : '#1A1A1A',
+              borderColor: theme === 'morning' ? '#E5E7EB' : theme === 'evening' ? '#8B4513' : '#374151'
+            }}
+          >
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               {readMode === 'tap' && (
                 <Button
@@ -1069,29 +1377,42 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
                 </Button>
               )}
               
+              {readMode === 'scroll' && (
+                <Button
+                  variant="outline"
+                  onClick={() => renditionRef.current?.prev()}
+                  className="flex items-center gap-2 transition-colors duration-300 bg-white/60 border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Prev
+                </Button>
+              )}
+              
               {readMode === 'flip' && <div className="w-24" />}
 
-              <div className="flex flex-col items-center text-center w-full">
-                <div className={`text-sm font-medium transition-colors duration-300 ${
-                  theme === 'morning' ? 'text-gray-900' :
-                  theme === 'evening' ? 'text-amber-900' :
-                  'text-gray-100'
-                }`}>
-                  {totalBookLocations > 0 ? 
-                    `Location ${currentLocationIndex + 1} of ${totalBookLocations}` : 
-                    `Page ${currentPage} of ${totalPages || "..."}`
-                  }
-                </div>
-                {currentChapterTitle && (
-                  <div className={`text-xs truncate max-w-xs mt-0.5 transition-colors duration-300 ${
-                    theme === 'morning' ? 'text-gray-500' :
-                    theme === 'evening' ? 'text-amber-700' :
-                    'text-gray-400'
+              {readMode !== 'scroll' && (
+                <div className="flex flex-col items-center text-center w-full">
+                  <div className={`text-sm font-medium transition-colors duration-300 ${
+                    theme === 'morning' ? 'text-gray-900' :
+                    theme === 'evening' ? 'text-amber-900' :
+                    'text-gray-100'
                   }`}>
-                    Chapter: {currentChapterTitle}
+                    {totalBookLocations > 0 ? 
+                      `Location ${currentLocationIndex + 1} of ${totalBookLocations}` : 
+                      `Page ${currentPage} of ${totalPages || "..."}`
+                    }
                   </div>
-                )}
-              </div>
+                  {currentChapterTitle && (
+                    <div className={`text-xs truncate max-w-xs mt-0.5 transition-colors duration-300 ${
+                      theme === 'morning' ? 'text-gray-500' :
+                      theme === 'evening' ? 'text-amber-700' :
+                      'text-gray-400'
+                    }`}>
+                      Chapter: {currentChapterTitle}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {readMode === 'tap' && (
                 <Button
@@ -1102,6 +1423,17 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
                     theme === 'evening' ? 'bg-[#F5E6D3] border-[#8B4513] text-amber-800 hover:bg-amber-100' :
                     'bg-[#1A1A1A] border-gray-600 text-gray-300 hover:bg-gray-700'
                   }`}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              )}
+
+              {readMode === 'scroll' && (
+                <Button
+                  variant="outline"
+                  onClick={() => renditionRef.current?.next()}
+                  className="flex items-center gap-2 transition-colors duration-300 bg-white/60 border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />
@@ -1424,31 +1756,73 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
               <div className="flex gap-2">
                 <button
                   onClick={() => setReadMode('tap')}
-                  className={`flex-1 py-2.5 px-4 rounded-full transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 ${
+                  className={`flex-1 py-2.5 px-3 rounded-full transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 ${
                     readMode === 'tap' 
                       ? 'bg-[#D01E1E] text-white shadow-md' 
                       : 'bg-white/60 hover:bg-white/80 border border-gray-200/50'
                   }`}
                 >
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex flex-col items-center justify-center">
                     <Fingerprint className="w-4 h-4" />
-                    <span className="text-sm font-medium">Tap</span>
+                    <span className="text-[10px] font-medium mt-0.5">Tap</span>
                   </div>
                 </button>
                 <button
-                  onClick={() => setReadMode('flip')}
-                  className={`flex-1 py-2.5 px-4 rounded-full transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 ${
+                  onClick={() => setReadMode('scroll')}
+                  className={`flex-1 py-2.5 px-3 rounded-full transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 ${
+                    readMode === 'scroll' 
+                      ? 'bg-[#D01E1E] text-white shadow-md' 
+                      : 'bg-white/60 hover:bg-white/80 border border-gray-200/50'
+                  }`}
+                >
+                  <div className="flex flex-col items-center justify-center">
+                    <ScrollText className="w-4 h-4" />
+                    <span className="text-[10px] font-medium mt-0.5">Scroll</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setReadMode('flip');
+                    setShowFlipOptions(!showFlipOptions);
+                  }}
+                  className={`flex-1 py-2.5 px-3 rounded-full transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 ${
                     readMode === 'flip' 
                       ? 'bg-[#D01E1E] text-white shadow-md' 
                       : 'bg-white/60 hover:bg-white/80 border border-gray-200/50'
                   }`}
                 >
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex flex-col items-center justify-center">
                     <Hand className="w-4 h-4" />
-                    <span className="text-sm font-medium">Flip</span>
+                    <span className="text-[10px] font-medium mt-0.5">Flip ▼</span>
                   </div>
                 </button>
               </div>
+              
+              {/* Flip Style Sub-options (Deck/Curl) */}
+              {readMode === 'flip' && showFlipOptions && (
+                <div className="mt-3 flex gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                  <button
+                    onClick={() => setFlipStyle('deck')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      flipStyle === 'deck'
+                        ? 'bg-[#D01E1E] text-white shadow-sm'
+                        : 'bg-white/60 hover:bg-white/80 border border-gray-200/50 text-gray-700'
+                    }`}
+                  >
+                    🎴 Simple Flip
+                  </button>
+                  <button
+                    onClick={() => setFlipStyle('curl')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      flipStyle === 'curl'
+                        ? 'bg-[#D01E1E] text-white shadow-md' 
+                        : 'bg-white/60 hover:bg-white/80 border border-gray-200/50 text-gray-700'
+                    }`}
+                  >
+                    ✨ Enhanced Curl
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Reading Theme Selector */}
