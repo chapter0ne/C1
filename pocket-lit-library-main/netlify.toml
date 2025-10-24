@@ -1,0 +1,21 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# Handle submissions route specifically
+[[redirects]]
+  from = "/submissions"
+  to = "/index.html"
+  status = 200
+
+# Handle SPA routing - redirect all non-file requests to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Custom 404 handling
+[[redirects]]
+  from = "/404"
+  to = "/index.html"
+  status = 200

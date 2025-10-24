@@ -1,2 +1,12 @@
+# Domain redirects
 https://chapterone.dev/*  https://chapterone.page/:splat  301!
 https://www.chapterone.dev/*  https://www.chapterone.page/:splat  301!
+
+# Specific route for submissions
+/submissions    /index.html   200
+
+# SPA routing - handle all routes through React Router
+/*    /index.html   200
+
+# Custom 404 handling - redirect to our 404 page
+/404    /index.html   200

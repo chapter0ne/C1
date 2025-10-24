@@ -16,14 +16,30 @@ const Index = () => {
     const handleSubmissionsRedirect = () => {
       const currentPath = window.location.pathname;
       if (currentPath === '/submissions') {
-        // Scroll to the competition section
-        const competitionSection = document.getElementById('writeyourchapterone');
-        if (competitionSection) {
-          competitionSection.scrollIntoView({ 
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
+        // Update URL to remove /submissions
+        window.history.replaceState({}, '', '/');
+        
+        // Wait for the component to render, then scroll to competition section
+        setTimeout(() => {
+          const competitionSection = document.getElementById('writeyourchapterone');
+          if (competitionSection) {
+            competitionSection.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start'
+            });
+          } else {
+            // If section not found, try again after a longer delay
+            setTimeout(() => {
+              const retrySection = document.getElementById('writeyourchapterone');
+              if (retrySection) {
+                retrySection.scrollIntoView({ 
+                  behavior: 'smooth',
+                  block: 'start'
+                });
+              }
+            }, 1000);
+          }
+        }, 500);
       }
     };
 
