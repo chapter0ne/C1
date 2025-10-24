@@ -74,6 +74,12 @@ export default {
 					700: '#E03131',
 					800: '#C92A2A',
 					900: '#A61E1E',
+				},
+				competition: {
+					pink: '#F8E8E8',
+					red: '#D9304F',
+					brown: '#6B2737',
+					teal: '#3ABDB1',
 				}
 			},
 			borderRadius: {

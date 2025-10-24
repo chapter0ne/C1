@@ -72,6 +72,14 @@ const Navbar: React.FC = () => {
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-chapterRed-500 transition-all duration-300 group-hover:w-full"></span>
           </a>
           
+          <a 
+            href="#writeyourchapterone" 
+            className="relative px-4 py-2 rounded-full font-light tracking-tighter text-white transition-all duration-300 hover:shadow-md"
+            style={{ backgroundColor: '#3ABDB1' }}
+          >
+            #WriteYourChapterOne
+          </a>
+          
           <WaitlistButton className="relative px-5 py-2 overflow-hidden font-light tracking-tighter text-white rounded-full shadow-md">
             Start Reading
           </WaitlistButton>
@@ -117,6 +125,14 @@ const Navbar: React.FC = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Publishers
+              </a>
+              <a 
+                href="#writeyourchapterone" 
+                className="text-center py-3 px-4 rounded-full transition-all hover:shadow-md font-light tracking-tighter text-white"
+                style={{ backgroundColor: '#3ABDB1' }}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                #WriteYourChapterOne
               </a>
               <div onClick={() => setIsMenuOpen(false)}>
                 <WaitlistButton className="text-center w-full bg-chapterRed-500 text-white py-3 px-4 rounded-full transition-all hover:shadow-md hover:bg-chapterRed-600 font-light tracking-tighter">
