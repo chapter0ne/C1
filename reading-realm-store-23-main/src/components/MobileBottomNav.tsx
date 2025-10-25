@@ -15,13 +15,13 @@ const MobileBottomNav = () => {
   const isActive = (path: string) => location.pathname === path;
   
   const getIconClass = (path: string) => 
-    isActive(path) ? "w-5 h-5 text-[#D01E1E]" : "w-5 h-5 text-gray-600";
+    isActive(path) ? "w-5 h-5 text-[#D01E1E]" : "w-5 h-5 text-gray-700";
     
   const getTextClass = (path: string) => 
-    isActive(path) ? "text-xs text-[#D01E1E] mt-1 font-medium" : "text-xs text-gray-600 mt-1";
+    isActive(path) ? "text-xs text-[#D01E1E] mt-1 font-medium" : "text-xs text-gray-700 mt-1";
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-white/20 border-t border-white/30 z-50">
       <div className="flex justify-around items-center py-1 px-4">
         {/* Home button */}
         <Link to="/" className="flex flex-col items-center p-1 flex-1">

@@ -46,24 +46,68 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [zoomDirection, setZoomDirection] = useState<'in' | 'out'>('in');
   const [animationKey, setAnimationKey] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(0);
+  const [touchEndX, setTouchEndX] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
+
+  // Function to change book with animation
+  const changeBook = (direction: 'next' | 'prev') => {
+    if (isTransitioning) return;
+    
+    setIsTransitioning(true);
+    setAutoPlay(false); // Pause auto-play when user interacts
+    
+    setTimeout(() => {
+      if (direction === 'next') {
+        setCurrentIndex((prev) => (prev + 1) % books.length);
+      } else {
+        setCurrentIndex((prev) => (prev - 1 + books.length) % books.length);
+      }
+      // Randomly choose zoom direction for next book
+      setZoomDirection(Math.random() > 0.5 ? 'in' : 'out');
+      // Force animation restart with key change
+      setAnimationKey((prev) => prev + 1);
+      setIsTransitioning(false);
+    }, 1000); // 1 second for smoother transition
+  };
+
+  // Touch handlers for swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX || !touchEndX) return;
+    
+    const distance = touchStartX - touchEndX;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      changeBook('next');
+    } else if (isRightSwipe) {
+      changeBook('prev');
+    }
+
+    // Resume auto-play after 15 seconds of no interaction
+    setTimeout(() => {
+      setAutoPlay(true);
+    }, 15000);
+  };
 
   useEffect(() => {
-    if (!books || books.length === 0) return;
+    if (!books || books.length === 0 || !autoPlay) return;
 
     const interval = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % books.length);
-        // Randomly choose zoom direction for next book
-        setZoomDirection(Math.random() > 0.5 ? 'in' : 'out');
-        // Force animation restart with key change
-        setAnimationKey((prev) => prev + 1);
-        setIsTransitioning(false);
-      }, 1000); // 1 second for smoother transition
+      changeBook('next');
     }, 10000); // 10 seconds per book
 
     return () => clearInterval(interval);
-  }, [books]);
+  }, [books, autoPlay]);
 
   if (!books || books.length === 0) return null;
 
@@ -77,6 +121,9 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
       className="relative w-full lg:hidden overflow-hidden cursor-pointer bg-black"
       style={{ height: '50vh' }}
       onClick={() => navigate(`/book/${currentBook._id}`)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Background Image with Ken Burns Effect */}
       <div 
@@ -91,11 +138,11 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
       />
 
       {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
+ <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
 
       {/* Content Overlay - Bottom Left */}
       <div 
-        className={`absolute bottom-0 left-0 right-0 p-4 pb-6 pr-20 transition-opacity duration-1000 ease-in-out ${
+         className={`absolute bottom-0 left-0 right-0 p-4 pb-6 pr-20 transition-opacity duration-1000 ease-in-out ${
           isTransitioning ? 'opacity-0' : 'opacity-100'
         }`}
       >
@@ -108,6 +155,23 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
         <p className="text-xs text-gray-300 line-clamp-3 drop-shadow-md">
           {truncatedSummary}
         </p>
+      </div>
+
+      {/* Swipe Indicators - Top Center */}
+      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 text-white/80">
+        <div className="flex items-center gap-1">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          <span className="text-xs font-medium">Swipe</span>
+        </div>
+        <div className="w-1 h-1 bg-white/60 rounded-full"></div>
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-medium">Swipe</span>
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+          </svg>
+        </div>
       </div>
 
       {/* Dot Indicators - Bottom Right */}
@@ -161,6 +225,15 @@ const Index = () => {
   const featuredBestsellers = bestsellers.length > 0 ? bestsellers : books.slice(0, 6);
   const featuredEditorPicks = editorPicks.length > 0 ? editorPicks : books.slice(6, 12);
   const { userLibrary, wishlist, cart, addToWishlist, removeFromWishlist } = useUserData();
+
+  // Function to get random books from the entire website
+  const getRandomBooks = () => {
+    if (!books || books.length === 0) return [];
+    
+    // Shuffle the books array and take 8 random books
+    const shuffled = [...books].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 8);
+  };
 
   // Debug logging
   console.log('Index page state:', { 
@@ -349,7 +422,7 @@ const Index = () => {
       </header>
 
       {/* Netflix-style Hero Section - Mobile & Tablet */}
-      <NetflixStyleHero books={featuredBestsellers.slice(0, 5)} />
+      <NetflixStyleHero books={getRandomBooks()} />
 
       {/* Desktop Hero - Keep original */}
       <section className="relative bg-gradient-to-br from-gray-50 to-gray-100 py-6 md:py-20 px-2 md:px-6 lg:px-8 hidden lg:block">
