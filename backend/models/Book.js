@@ -33,13 +33,6 @@ const bookSchema = new mongoose.Schema({
   totalRatings: { type: Number, default: 0 }, // Count of ratings
   averageRating: { type: Number, default: 5.0, min: 0, max: 5 }, // Cumulative average
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  
-  // Author social media links
-  authorSocials: {
-    instagram: { type: String, trim: true, default: '' },
-    twitter: { type: String, trim: true, default: '' },
-    tiktok: { type: String, trim: true, default: '' }
-  },
 }, { timestamps: true });
 
 bookSchema.virtual('id').get(function () {

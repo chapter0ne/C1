@@ -147,7 +147,7 @@ router.get('/public', async (req, res) => {
       if (price === 'Free') filter.isFree = true;
     }
     
-    const books = await Book.find(filter).select('title author genre coverImageUrl isFree price rating totalRatings averageRating tags authorSocials');
+    const books = await Book.find(filter).select('title author genre coverImageUrl isFree price rating totalRatings averageRating tags');
     res.json(books);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -185,23 +185,9 @@ router.get('/search', authMiddleware, async (req, res) => {
   }
 });
 
-// Public endpoint for individual book (no auth required)
-router.get('/public/:id', async (req, res) => {
-  try {
-    const book = await Book.findById(req.params.id).select('title author genre coverImageUrl isFree price rating totalRatings averageRating tags authorSocials');
-    if (!book) return res.status(404).json({ message: 'Book not found' });
-    if (book.status !== 'published') {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-    res.json(book);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // Get book by ID (public if published, admin can get any)
 router.get('/:id', authMiddleware, async (req, res) => {
-  const book = await Book.findById(req.params.id).select('title author genre coverImageUrl isFree price rating totalRatings averageRating tags authorSocials');
+  const book = await Book.findById(req.params.id);
   if (!book) return res.status(404).json({ message: 'Book not found' });
   if (book.status !== 'published' && !req.user.roles.includes('admin')) {
     return res.status(403).json({ message: 'Not authorized' });

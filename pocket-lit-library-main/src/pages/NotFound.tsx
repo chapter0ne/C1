@@ -110,7 +110,7 @@ const NotFound = () => {
             <Link to="/#publishers" className="text-chapterRed-500 hover:text-chapterRed-600 underline">
               Publishers
             </Link>
-          </div>
+      </div>
         </motion.div>
       </motion.div>
     </div>

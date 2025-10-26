@@ -12,11 +12,6 @@ export interface FormData {
   isFree: boolean;
   coverImage?: File;
   coverImageUrl?: string; // Add this field for existing cover images
-  authorSocials?: {
-    instagram?: string;
-    twitter?: string;
-    tiktok?: string;
-  };
 }
 
 export const useUploadForm = () => {
@@ -33,12 +28,7 @@ export const useUploadForm = () => {
     isbn: "",
     price: "",
     isFree: false,
-    coverImage: undefined,
-    authorSocials: {
-      instagram: "",
-      twitter: "",
-      tiktok: ""
-    }
+    coverImage: undefined
   });
 
   // Update cover image URL when cover image changes
@@ -56,7 +46,7 @@ export const useUploadForm = () => {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
-  const handleInputChange = (field: string, value: string | boolean | File | { instagram?: string; twitter?: string; tiktok?: string }) => {
+  const handleInputChange = (field: string, value: string | boolean | File) => {
     console.log('handleInputChange called with:', { field, value });
     setFormData(prev => {
       const newFormData = {
@@ -136,12 +126,7 @@ export const useUploadForm = () => {
       price: book.price ? String(book.price) : (book.isFree || book.is_free ? '0' : '1000'), // Default to 0 for free books, 1000 for paid
       isFree: book.isFree ?? book.is_free ?? false,
       coverImage: undefined, // Keep as undefined for new file uploads
-      coverImageUrl: existingCoverUrl || undefined, // Set existing cover URL
-      authorSocials: {
-        instagram: book.authorSocials?.instagram || '',
-        twitter: book.authorSocials?.twitter || '',
-        tiktok: book.authorSocials?.tiktok || ''
-      }
+      coverImageUrl: existingCoverUrl || undefined // Set existing cover URL
     };
     
     console.log('Setting new form data:', newFormData);

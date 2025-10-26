@@ -13,7 +13,6 @@ import { useState } from "react";
 import BookCard from "@/components/BookCard";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import UniversalHeader from "@/components/UniversalHeader";
-import AuthorSocials from "@/components/AuthorSocials";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/hooks/useCart";
@@ -355,10 +354,7 @@ const BookDetails = () => {
                 ))}
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{book.title}</h1>
-              <div className="flex items-center gap-3 mb-3">
-                <p className="text-lg text-gray-600 truncate">by {book.author}</p>
-                <AuthorSocials authorSocials={book.authorSocials} />
-              </div>
+              <p className="text-lg text-gray-600 mb-3 truncate">by {book.author}</p>
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex items-center gap-1">
                   {[...Array(5)].map((_, i) => (
@@ -384,10 +380,7 @@ const BookDetails = () => {
               </div>
               {/* Title & Author */}
               <h1 className="text-2xl font-bold text-gray-900 mb-1">{book.title}</h1>
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-base text-gray-600 truncate">by {book.author}</p>
-                <AuthorSocials authorSocials={book.authorSocials} className="flex-shrink-0" />
-              </div>
+              <p className="text-base text-gray-600 mb-2 truncate">by {book.author}</p>
               {/* Stars & Price */}
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center gap-1">
