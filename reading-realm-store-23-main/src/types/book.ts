@@ -13,6 +13,11 @@ export interface Book {
   totalRatings: number;
   chapters: Chapter[];
   tags: string[];
+  authorSocials?: {
+    instagram?: string;
+    twitter?: string;
+    tiktok?: string;
+  };
   // Additional properties for compatibility
   category?: string;
   cover?: string; // Keep for backward compatibility

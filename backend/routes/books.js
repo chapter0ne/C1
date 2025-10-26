@@ -147,7 +147,7 @@ router.get('/public', async (req, res) => {
       if (price === 'Free') filter.isFree = true;
     }
     
-    const books = await Book.find(filter).select('title author genre coverImageUrl isFree price rating totalRatings averageRating tags');
+    const books = await Book.find(filter).select('title author genre coverImageUrl isFree price rating totalRatings averageRating tags authorSocials');
     res.json(books);
   } catch (err) {
     res.status(500).json({ message: err.message });

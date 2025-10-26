@@ -53,7 +53,7 @@ router.get('/', async (req, res) => {
     for (const fb of rawFeaturedBooks) {
       try {
         const book = await Book.findById(fb.book)
-          .select('title author genre coverImageUrl isFree price status rating totalRatings averageRating tags')
+          .select('title author genre coverImageUrl isFree price status rating totalRatings averageRating tags authorSocials')
           .lean();
         
         const user = await User.findById(fb.featuredBy)
