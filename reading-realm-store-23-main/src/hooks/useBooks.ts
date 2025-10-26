@@ -37,7 +37,7 @@ export const useRandomBooks = (count: number = 24) => {
 export const useBookDetails = (id: string) => {
   return useQuery({
     queryKey: ['book', id],
-    queryFn: async () => await api.get(`/books/${id}`),
+    queryFn: async () => await api.get(`/books/public/${id}`),
     enabled: !!id,
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
