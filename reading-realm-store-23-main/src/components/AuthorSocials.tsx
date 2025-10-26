@@ -55,11 +55,10 @@ const AuthorSocials: React.FC<AuthorSocialsProps> = ({ authorSocials, className 
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-700 hover:text-gray-900"
-          title={`Follow ${link.username} on ${link.platform}`}
+          className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-700 hover:text-gray-900"
+          title={`Follow on ${link.platform}`}
         >
           {link.icon}
-          <span className="text-xs font-medium">{link.username}</span>
         </a>
       ))}
     </div>
