@@ -280,4 +280,37 @@ router.post('/cleanup', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// Clear all featured books (admin only) - DANGEROUS OPERATION
+router.post('/clear-all', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    console.log('Clearing all featured books...');
+    
+    // Get count before deletion
+    const countBefore = await FeaturedBook.countDocuments();
+    console.log(`Found ${countBefore} featured book entries`);
+    
+    if (countBefore === 0) {
+      return res.json({ message: 'No featured books to clear', deletedCount: 0 });
+    }
+    
+    // Delete all featured books
+    const result = await FeaturedBook.deleteMany({});
+    console.log(`Deleted ${result.deletedCount} featured book entries`);
+    
+    // Verify deletion
+    const countAfter = await FeaturedBook.countDocuments();
+    console.log(`Remaining featured book entries: ${countAfter}`);
+    
+    res.json({ 
+      message: `Successfully cleared all featured books`, 
+      deletedCount: result.deletedCount,
+      countBefore,
+      countAfter
+    });
+  } catch (err) {
+    console.error('Clear all featured books error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router; 
