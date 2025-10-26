@@ -36,9 +36,9 @@ const bookSchema = new mongoose.Schema({
   
   // Author social media links
   authorSocials: {
-    instagram: { type: String, trim: true },
-    twitter: { type: String, trim: true },
-    tiktok: { type: String, trim: true }
+    instagram: { type: String, trim: true, default: '' },
+    twitter: { type: String, trim: true, default: '' },
+    tiktok: { type: String, trim: true, default: '' }
   },
 }, { timestamps: true });
 
