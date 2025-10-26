@@ -201,7 +201,7 @@ router.get('/public/:id', async (req, res) => {
 
 // Get book by ID (public if published, admin can get any)
 router.get('/:id', authMiddleware, async (req, res) => {
-  const book = await Book.findById(req.params.id).select('title author genre coverImageUrl isFree price rating totalRatings averageRating tags authorSocials');
+  const book = await Book.findById(req.params.id);
   if (!book) return res.status(404).json({ message: 'Book not found' });
   if (book.status !== 'published' && !req.user.roles.includes('admin')) {
     return res.status(403).json({ message: 'Not authorized' });
