@@ -31,6 +31,7 @@ const adminOnly = (req, res, next) => {
 // Get all featured books (with optional category filter) - Public endpoint
 router.get('/', async (req, res) => {
   try {
+    console.log('GET /featured-books called');
     const { category } = req.query;
     let query = {};
     
@@ -38,50 +39,45 @@ router.get('/', async (req, res) => {
       query.category = category;
     }
     
-    let featuredBooks;
-    try {
-      // Try populate first
-      featuredBooks = await FeaturedBook.find(query)
-        .populate('book', 'title author genre coverImageUrl isFree price status rating totalRatings averageRating tags')
-        .populate('featuredBy', 'username email')
-        .sort({ displayOrder: 1, featuredAt: -1 });
-    } catch (populateError) {
-      console.error('Populate error in GET /featured-books:', populateError);
-      
-      // Fallback: get raw data and manually populate
-      const rawFeaturedBooks = await FeaturedBook.find(query)
-        .sort({ displayOrder: 1, featuredAt: -1 })
-        .lean();
-      
-      featuredBooks = [];
-      for (const fb of rawFeaturedBooks) {
-        try {
-          const book = await Book.findById(fb.book)
-            .select('title author genre coverImageUrl isFree price status rating totalRatings averageRating tags')
-            .lean();
-          
-          const user = await User.findById(fb.featuredBy)
-            .select('username email')
-            .lean();
-          
-          if (book) {
-            featuredBooks.push({
-              ...fb,
-              book: book,
-              featuredBy: user || { username: 'Unknown', email: 'unknown@example.com' }
-            });
-          }
-        } catch (itemError) {
-          console.log(`Skipping featured book ${fb._id} - error loading data:`, itemError.message);
+    console.log('Query:', query);
+    
+    // Simple approach - get all featured books without populate first
+    const rawFeaturedBooks = await FeaturedBook.find(query)
+      .sort({ displayOrder: 1, featuredAt: -1 })
+      .lean();
+    
+    console.log('Raw featured books count:', rawFeaturedBooks.length);
+    
+    // Manually populate each one safely
+    const featuredBooks = [];
+    for (const fb of rawFeaturedBooks) {
+      try {
+        const book = await Book.findById(fb.book)
+          .select('title author genre coverImageUrl isFree price status rating totalRatings averageRating tags')
+          .lean();
+        
+        const user = await User.findById(fb.featuredBy)
+          .select('username email')
+          .lean();
+        
+        if (book) {
+          featuredBooks.push({
+            ...fb,
+            book: book,
+            featuredBy: user || { username: 'Unknown', email: 'unknown@example.com' }
+          });
+        } else {
+          console.log(`Skipping featured book ${fb._id} - book not found`);
         }
+      } catch (itemError) {
+        console.log(`Skipping featured book ${fb._id} - error: ${itemError.message}`);
       }
     }
     
-    // Filter out any featured books where the book was deleted
-    const validFeaturedBooks = featuredBooks.filter(fb => fb.book && fb.book._id);
+    console.log('Final featured books count:', featuredBooks.length);
     
     // Always return an array, even if empty
-    res.json(validFeaturedBooks || []);
+    res.json(featuredBooks || []);
   } catch (err) {
     console.error('Get featured books error:', err);
     console.error('Error stack:', err.stack);

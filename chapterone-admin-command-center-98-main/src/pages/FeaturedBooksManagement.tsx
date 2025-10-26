@@ -138,7 +138,7 @@ const FeaturedBooksManagement = () => {
                 onClick={async () => {
                   if (confirm('Are you sure you want to clear ALL featured books? This action cannot be undone.')) {
                     try {
-                      const response = await fetch('/api/featured-books/clear-all', {
+                      const response = await fetch('https://backend-8zug.onrender.com/api/featured-books/clear-all', {
                         method: 'POST',
                         headers: {
                           'Authorization': `Bearer ${localStorage.getItem('token')}`,
