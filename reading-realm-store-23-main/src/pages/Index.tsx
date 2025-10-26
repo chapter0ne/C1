@@ -49,6 +49,7 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchEndX, setTouchEndX] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
+  const [showSwipeIndicators, setShowSwipeIndicators] = useState(true);
 
   // Function to change book with animation
   const changeBook = (direction: 'next' | 'prev') => {
@@ -74,6 +75,8 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
   // Touch handlers for swipe gestures
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartX(e.targetTouches[0].clientX);
+    // Show swipe indicators when touched
+    setShowSwipeIndicators(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -98,6 +101,15 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
       setAutoPlay(true);
     }, 15000);
   };
+
+  // Auto-hide swipe indicators after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSwipeIndicators(false);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [showSwipeIndicators]);
 
   useEffect(() => {
     if (!books || books.length === 0 || !autoPlay) return;
@@ -158,7 +170,9 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
       </div>
 
       {/* Swipe Indicators - Top Center */}
-      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 text-white/80">
+      <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 text-white/80 transition-opacity duration-500 ${
+        showSwipeIndicators ? 'opacity-100' : 'opacity-0'
+      }`}>
         <div className="flex items-center gap-1">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -221,9 +235,21 @@ const Index = () => {
   const { data: bestsellers = [], isLoading: bestsellersLoading } = useBestsellers();
   const { data: editorPicks = [], isLoading: editorPicksLoading } = useEditorPicks();
   
-  // Use books data for featured sections until backend is deployed
-  const featuredBestsellers = bestsellers.length > 0 ? bestsellers : books.slice(0, 6);
-  const featuredEditorPicks = editorPicks.length > 0 ? editorPicks : books.slice(6, 12);
+  // Use featured books from API, or fall back to newest books if no featured books exist
+  const newestBooks = [...books].sort((a, b) => {
+    const dateA = new Date(a.createdAt || a.uploadedAt || 0).getTime();
+    const dateB = new Date(b.createdAt || b.uploadedAt || 0).getTime();
+    return dateB - dateA;
+  });
+  
+  // Extract actual book objects from featured books API response
+  const featuredBestsellers = bestsellers.length > 0 
+    ? bestsellers.map((fb: any) => fb.book || fb).filter(Boolean) 
+    : newestBooks.slice(0, 6);
+    
+  const featuredEditorPicks = editorPicks.length > 0 
+    ? editorPicks.map((fb: any) => fb.book || fb).filter(Boolean) 
+    : newestBooks.slice(6, 12);
   const { userLibrary, wishlist, cart, addToWishlist, removeFromWishlist } = useUserData();
 
   // Function to get random books from the entire website

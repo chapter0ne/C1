@@ -1,6 +1,7 @@
 const express = require('express');
 const FeaturedBook = require('../models/FeaturedBook');
 const Book = require('../models/Book');
+const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const router = express.Router();
@@ -37,19 +38,54 @@ router.get('/', async (req, res) => {
       query.category = category;
     }
     
-    const featuredBooks = await FeaturedBook.find(query)
-      .populate('book', 'title author genre coverImageUrl isFree price status rating totalRatings averageRating tags')
-      .populate('featuredBy', 'username email')
-      .sort({ displayOrder: 1, featuredAt: -1 });
+    let featuredBooks;
+    try {
+      // Try populate first
+      featuredBooks = await FeaturedBook.find(query)
+        .populate('book', 'title author genre coverImageUrl isFree price status rating totalRatings averageRating tags')
+        .populate('featuredBy', 'username email')
+        .sort({ displayOrder: 1, featuredAt: -1 });
+    } catch (populateError) {
+      console.error('Populate error in GET /featured-books:', populateError);
+      
+      // Fallback: get raw data and manually populate
+      const rawFeaturedBooks = await FeaturedBook.find(query)
+        .sort({ displayOrder: 1, featuredAt: -1 })
+        .lean();
+      
+      featuredBooks = [];
+      for (const fb of rawFeaturedBooks) {
+        try {
+          const book = await Book.findById(fb.book)
+            .select('title author genre coverImageUrl isFree price status rating totalRatings averageRating tags')
+            .lean();
+          
+          const user = await User.findById(fb.featuredBy)
+            .select('username email')
+            .lean();
+          
+          if (book) {
+            featuredBooks.push({
+              ...fb,
+              book: book,
+              featuredBy: user || { username: 'Unknown', email: 'unknown@example.com' }
+            });
+          }
+        } catch (itemError) {
+          console.log(`Skipping featured book ${fb._id} - error loading data:`, itemError.message);
+        }
+      }
+    }
     
     // Filter out any featured books where the book was deleted
-    const validFeaturedBooks = featuredBooks.filter(fb => fb.book !== null);
+    const validFeaturedBooks = featuredBooks.filter(fb => fb.book && fb.book._id);
     
     // Always return an array, even if empty
     res.json(validFeaturedBooks || []);
   } catch (err) {
     console.error('Get featured books error:', err);
-    res.status(500).json({ message: err.message });
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ message: err.message || 'Failed to fetch featured books' });
   }
 });
 
@@ -110,14 +146,28 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
     await featuredBook.save();
     
     // Populate and return the created featured book
-    const populatedFeaturedBook = await FeaturedBook.findById(featuredBook._id)
-      .populate('book', 'title author genre coverImageUrl isFree price status')
-      .populate('featuredBy', 'username email');
-    
-    res.status(201).json(populatedFeaturedBook);
+    try {
+      const populatedFeaturedBook = await FeaturedBook.findById(featuredBook._id)
+        .populate('book', 'title author genre coverImageUrl isFree price status')
+        .populate('featuredBy', 'username email');
+      
+      res.status(201).json(populatedFeaturedBook);
+    } catch (populateError) {
+      console.error('Error populating featured book after creation:', populateError);
+      // Still return success, but with basic data
+      res.status(201).json({
+        _id: featuredBook._id,
+        book: book,
+        category: featuredBook.category,
+        featuredBy: req.user.userId,
+        displayOrder: featuredBook.displayOrder,
+        featuredAt: featuredBook.featuredAt
+      });
+    }
   } catch (err) {
     console.error('Add featured book error:', err);
-    res.status(500).json({ message: err.message });
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ message: err.message || 'Failed to add featured book' });
   }
 });
 
@@ -180,6 +230,52 @@ router.put('/:id/order', authMiddleware, adminOnly, async (req, res) => {
     res.json(featuredBook);
   } catch (err) {
     console.error('Update featured book order error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Clean up featured books with deleted book references (admin only)
+router.post('/cleanup', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    console.log('Starting cleanup of orphaned featured books...');
+    
+    // Get all featured books
+    const allFeaturedBooks = await FeaturedBook.find({}).lean();
+    
+    let deletedCount = 0;
+    const deletedIds = [];
+    
+    // Check each featured book to see if its referenced book exists
+    for (const featuredBook of allFeaturedBooks) {
+      try {
+        const book = await Book.findById(featuredBook.book);
+        if (!book) {
+          // Book doesn't exist, delete this featured book entry
+          await FeaturedBook.findByIdAndDelete(featuredBook._id);
+          deletedCount++;
+          deletedIds.push(featuredBook._id);
+          console.log(`Deleted orphaned featured book entry ${featuredBook._id}`);
+        }
+      } catch (err) {
+        // Error checking book, assume it doesn't exist
+        await FeaturedBook.findByIdAndDelete(featuredBook._id);
+        deletedCount++;
+        deletedIds.push(featuredBook._id);
+        console.log(`Deleted orphaned featured book entry ${featuredBook._id}`);
+      }
+    }
+    
+    if (deletedCount === 0) {
+      return res.json({ message: 'No orphaned featured book entries found', deletedCount: 0 });
+    }
+    
+    res.json({ 
+      message: `Successfully removed ${deletedCount} orphaned featured book entries`, 
+      deletedCount,
+      deletedIds
+    });
+  } catch (err) {
+    console.error('Cleanup featured books error:', err);
     res.status(500).json({ message: err.message });
   }
 });

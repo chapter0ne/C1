@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, ZoomIn, ZoomOut, Menu, X, Settings, Sun, Sunset, Moon, Hand, Fingerprint, Type } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, ZoomIn, ZoomOut, Menu, X, Settings, Sun, Sunset, Moon, Hand, Fingerprint } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ePub, { Book, Rendition } from "epubjs";
 
@@ -41,6 +41,7 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
     const saved = localStorage.getItem('epub-reader-font');
     return saved || 'Original';
   });
+  const [showFontSelector, setShowFontSelector] = useState(false);
   const [showTapIndicators, setShowTapIndicators] = useState(false);
   const [tapShadowSide, setTapShadowSide] = useState<'left' | 'right' | null>(null);
   const touchStartX = useRef<number>(0);
@@ -340,7 +341,7 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
         renditionRef.current.destroy();
       }
     };
-  }, [epubUrl, bookId, readMode]);
+  }, [epubUrl, bookId]);
 
   // Apply theme to EPUB content
   useEffect(() => {
@@ -555,15 +556,15 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
     // Only process horizontal swipes for flip mode
     if (readMode === 'flip' && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
       e.preventDefault();
+    
+    const viewerWidth = viewerRef.current?.clientWidth || window.innerWidth;
+    const iframe = renditionRef.current?.getContents()[0];
       
-      const viewerWidth = viewerRef.current?.clientWidth || window.innerWidth;
-      const iframe = renditionRef.current?.getContents()[0];
-      
-      if (iframe && iframe.document && iframe.document.body) {
+    if (iframe && iframe.document && iframe.document.body) {
         // Real-time sliding animation following finger movement
         const progress = Math.max(-viewerWidth, Math.min(viewerWidth, deltaX));
-        iframe.document.body.style.transition = 'none';
-        iframe.document.body.style.transform = `translateX(${progress}px)`;
+      iframe.document.body.style.transition = 'none';
+      iframe.document.body.style.transform = `translateX(${progress}px)`;
       }
     }
   };
@@ -589,7 +590,7 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
       const velocityThreshold = 0.3; // Minimum swipe velocity
       
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
-        const iframe = renditionRef.current?.getContents()[0];
+      const iframe = renditionRef.current?.getContents()[0];
         
         if (iframe && iframe.document && iframe.document.body) {
           setIsSliding(true);
@@ -609,7 +610,7 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
               handlePrevPage();
               
               // Reset position and show content after navigation
-              setTimeout(() => {
+          setTimeout(() => {
                 const newIframe = renditionRef.current?.getContents()[0];
                 if (newIframe && newIframe.document && newIframe.document.body) {
                   newIframe.document.body.style.transition = 'none';
@@ -619,7 +620,7 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
                 setIsSliding(false);
               }, 100);
             }, 500);
-          } else {
+            } else {
             // Swipe left - show next page
             console.log('➡️ SWIPE LEFT → NEXT');
             iframe.document.body.style.transition = 'transform 500ms ease-in-out';
@@ -634,10 +635,10 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
               handleNextPage();
               
               // Reset position and show content after navigation
-              setTimeout(() => {
-                const newIframe = renditionRef.current?.getContents()[0];
-                if (newIframe && newIframe.document && newIframe.document.body) {
-                  newIframe.document.body.style.transition = 'none';
+            setTimeout(() => {
+              const newIframe = renditionRef.current?.getContents()[0];
+              if (newIframe && newIframe.document && newIframe.document.body) {
+                newIframe.document.body.style.transition = 'none';
                   newIframe.document.body.style.transform = 'translateX(0px)';
                   newIframe.document.body.style.opacity = '1';
                 }
@@ -657,23 +658,23 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
     } else {
       // Tap mode: left/right tap zones
       const viewerWidth = viewerRef.current?.clientWidth || window.innerWidth;
-      const leftBoundary = viewerWidth / 3;
-      const rightBoundary = (viewerWidth * 2) / 3;
+        const leftBoundary = viewerWidth / 3;
+        const rightBoundary = (viewerWidth * 2) / 3;
       const tapX = touch.clientX;
-      
-      console.log('✅ TAP:', { 
-        tapX, 
-        leftBoundary,
-        rightBoundary,
-        zone: tapX < leftBoundary ? 'LEFT' : tapX > rightBoundary ? 'RIGHT' : 'MIDDLE' 
-      });
-      
-      if (tapX < leftBoundary) {
-        console.log('⬅️ TAP LEFT → PREV');
-        handlePrevPage();
-      } else if (tapX > rightBoundary) {
-        console.log('➡️ TAP RIGHT → NEXT');
-        handleNextPage();
+        
+        console.log('✅ TAP:', { 
+          tapX, 
+          leftBoundary,
+          rightBoundary,
+          zone: tapX < leftBoundary ? 'LEFT' : tapX > rightBoundary ? 'RIGHT' : 'MIDDLE' 
+        });
+        
+        if (tapX < leftBoundary) {
+          console.log('⬅️ TAP LEFT → PREV');
+          handlePrevPage();
+        } else if (tapX > rightBoundary) {
+          console.log('➡️ TAP RIGHT → NEXT');
+          handleNextPage();
       }
     }
   };
@@ -938,11 +939,13 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
         className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${
           theme === 'morning' ? 'border-b shadow-sm' : 
           theme === 'evening' ? 'shadow-lg' : 
-          'border-b shadow-sm'
+          ''
         }`}
         style={{
           backgroundColor: theme === 'morning' ? '#FFFFFF' : theme === 'evening' ? '#F5E6D3' : '#1A1A1A',
-          boxShadow: theme === 'evening' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : undefined
+          boxShadow: theme === 'evening' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' :
+                      theme === 'midnight' ? '0 8px 16px rgba(255, 255, 255, 0.08), 0 4px 8px rgba(255, 255, 255, 0.04)' :
+                      undefined
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -965,17 +968,17 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
                 <div className="flex flex-col items-center gap-2">
                   {/* Progress Bar */}
                       <div className="w-full max-w-xs">
-                    <div className={`w-full h-1.5 rounded-full transition-colors duration-300 ${
-                      theme === 'morning' ? 'bg-gray-200' :
+                        <div className={`w-full h-1.5 rounded-full transition-colors duration-300 ${
+                          theme === 'morning' ? 'bg-gray-200' :
                       theme === 'evening' ? 'bg-[#e8e4d8]' :
-                      'bg-gray-600'
-                    }`}>
-                      <div 
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          theme === 'morning' ? 'bg-[#D01E1E]' :
+                          'bg-gray-600'
+                        }`}>
+                          <div 
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              theme === 'morning' ? 'bg-[#D01E1E]' :
                           theme === 'evening' ? 'bg-[#2a2a2a]' :
-                          'bg-gray-300'
-                        }`}
+                              'bg-gray-300'
+                            }`}
                             style={{
                           width: totalBookLocations > 0 
                             ? `${((currentLocationIndex + 1) / totalBookLocations) * 100}%`
@@ -985,11 +988,11 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
                             }}
                           />
                         </div>
-                    <div className={`text-xs mt-1 transition-colors duration-300 ${
-                      theme === 'morning' ? 'text-gray-500' :
+                        <div className={`text-xs mt-1 transition-colors duration-300 ${
+                          theme === 'morning' ? 'text-gray-500' :
                       theme === 'evening' ? 'text-[#2a2a2a]' :
-                      'text-gray-400'
-                    }`}>
+                          'text-gray-400'
+                        }`}>
                       {totalBookLocations > 0 
                         ? `${Math.round(((currentLocationIndex + 1) / totalBookLocations) * 100)}%`
                         : totalPages > 0 
@@ -1164,11 +1167,13 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
             className={`p-4 transition-all duration-300 ${
               theme === 'morning' ? 'border-t' : 
               theme === 'evening' ? 'shadow-lg' : 
-              'border-t'
+              ''
             }`}
             style={{
               backgroundColor: theme === 'morning' ? '#FFFFFF' : theme === 'evening' ? '#F5E6D3' : '#1A1A1A',
-              boxShadow: theme === 'evening' ? '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)' : undefined
+              boxShadow: theme === 'evening' ? '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)' :
+                          theme === 'midnight' ? '0 -8px 16px rgba(255, 255, 255, 0.08), 0 -4px 8px rgba(255, 255, 255, 0.04)' :
+                          undefined
             }}
           >
             <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -1480,7 +1485,98 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
               </div>
             </div>
 
-
+            {/* Font Family Selector */}
+            <div>
+              <label className="text-sm font-semibold text-gray-900 mb-3 block">Typography</label>
+              {/* Dropdown Toggle Button */}
+                <button
+                  onClick={() => setShowFontSelector(!showFontSelector)}
+                className="w-full py-2.5 px-3 rounded-full transition-all duration-150 shadow-sm hover:shadow-md active:scale-[0.96] active:shadow-sm touch-manipulation bg-[#D01E1E] hover:bg-[#B01818] border border-[#D01E1E]"
+                style={{
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {selectedFont === 'Original' && (
+                      <span className="text-sm font-medium text-white">Original</span>
+                    )}
+                    {selectedFont === 'Kite' && (
+                      <span className="text-sm font-normal text-white" style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>Kite</span>
+                    )}
+                    {selectedFont === 'Harbor' && (
+                      <span className="text-sm font-normal text-white" style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Harbor</span>
+                    )}
+                    {selectedFont === 'Isola' && (
+                      <span className="text-sm font-normal text-white" style={{ fontFamily: '"Palatino Linotype", Palatino, "Book Antiqua", serif' }}>Isola</span>
+                    )}
+                    {selectedFont === 'Cedar' && (
+                      <span className="text-sm font-normal text-white" style={{ fontFamily: '"Times New Roman", Times, "Liberation Serif", serif' }}>Cedar</span>
+                    )}
+                  </div>
+                  <svg 
+                    className={`w-4 h-4 text-white transition-transform duration-200 ${showFontSelector ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                </button>
+                
+              {/* Dropdown Options */}
+              <div 
+                className={`overflow-hidden transition-all duration-500 ease-out ${
+                  showFontSelector 
+                    ? 'max-h-96 opacity-100 mt-2' 
+                    : 'max-h-0 opacity-0 mt-0'
+                }`}
+              >
+                <div className="space-y-2">
+                  {fonts.map((font) => (
+                      <button
+                        key={font.name}
+                        onClick={() => {
+                          handleFontChange(font.name, font.family, font.type);
+                          setShowFontSelector(false);
+                        }}
+                      className={`w-full py-2.5 px-3 rounded-full transition-all duration-150 shadow-sm hover:shadow-md active:scale-[0.96] active:shadow-sm touch-manipulation ${
+                        selectedFont === font.name 
+                          ? 'bg-[#D01E1E] text-white shadow-md' 
+                          : 'bg-white/60 hover:bg-white/80 border border-gray-200/50'
+                        }`}
+                        style={{ 
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {font.name === 'Original' && (
+                            <span className="text-sm font-medium">Original</span>
+                          )}
+                          {font.name === 'Kite' && (
+                            <span className="text-sm font-normal" style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>Kite</span>
+                          )}
+                          {font.name === 'Harbor' && (
+                            <span className="text-sm font-normal" style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Harbor</span>
+                          )}
+                          {font.name === 'Isola' && (
+                            <span className="text-sm font-normal" style={{ fontFamily: '"Palatino Linotype", Palatino, "Book Antiqua", serif' }}>Isola</span>
+                          )}
+                          {font.name === 'Cedar' && (
+                            <span className="text-sm font-normal" style={{ fontFamily: '"Times New Roman", Times, "Liberation Serif", serif' }}>Cedar</span>
+                          )}
+                        </div>
+                        {selectedFont === font.name && (
+                          <div>✓</div>
+                        )}
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
 
             {/* Read Mode Toggle */}
             <div>

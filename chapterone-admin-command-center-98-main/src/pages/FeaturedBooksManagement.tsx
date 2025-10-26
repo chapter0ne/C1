@@ -56,21 +56,42 @@ const FeaturedBooksManagement = () => {
       return;
     }
 
-    try {
-      // Add books one by one
-      for (const bookId of selectedBooks) {
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    // Add books one by one
+    for (const bookId of selectedBooks) {
+      try {
         await addFeaturedMutation.mutateAsync({
           bookId,
-        category: activeTab as 'bestseller' | 'editor_pick'
-      });
+          category: activeTab as 'bestseller' | 'editor_pick'
+        });
+        successCount++;
+      } catch (error: any) {
+        errorCount++;
+        // Check if it's a duplicate error
+        if (error?.message?.includes('already featured')) {
+          // Silently skip duplicate books
+          continue;
+        }
+        // Store other errors for reporting
+        const bookTitle = allBooks.find(b => b._id === bookId)?.title || 'Unknown book';
+        errors.push(`${bookTitle}: ${error?.message || 'Failed to add'}`);
       }
-      
-      setSelectedBooks([]);
-      setSearchTerm("");
-      toast.success(`${selectedBooks.length} book(s) added to ${activeTab === 'bestseller' ? 'Bestsellers' : 'Editor Picks'}`);
-    } catch (error) {
-      console.error('Error adding books:', error);
-      toast.error('Failed to add some books');
+    }
+    
+    setSelectedBooks([]);
+    setSearchTerm("");
+    
+    // Show appropriate feedback
+    if (successCount > 0) {
+      toast.success(`${successCount} book(s) added to ${activeTab === 'bestseller' ? 'Bestsellers' : 'Editor Picks'}`);
+    }
+    if (errorCount > 0 && errors.length > 0) {
+      toast.error(`Failed to add ${errorCount} book(s). Some books may already be in the list.`);
+    } else if (errorCount > 0) {
+      toast.warning(`${errorCount} book(s) were already in the list.`);
     }
   };
 
