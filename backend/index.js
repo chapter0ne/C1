@@ -34,9 +34,18 @@ const corsOptions = {
     
     // Allow your frontend domains
     const allowedOrigins = [
-      'https://your-frontend-domain.com',
-      'https://your-admin-domain.com',
-      // Add your actual frontend and admin domains here
+      'https://chapterone.page',
+      'https://www.chapterone.page',
+      'https://read.chapterone.page',
+      'https://www.read.chapterone.page',
+      'https://adminaccess.chapterone.page',
+      'https://www.adminaccess.chapterone.page',
+      'https://adminaccess.chapterone.dev',
+      'https://www.adminaccess.chapterone.dev',
+      'https://read.chapterone.dev',
+      'https://www.read.chapterone.dev',
+      'https://chapterone.dev',
+      'https://www.chapterone.dev'
     ];
     
     if (allowedOrigins.includes(origin)) {
