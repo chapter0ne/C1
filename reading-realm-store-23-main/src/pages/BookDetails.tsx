@@ -357,6 +357,7 @@ const BookDetails = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{book.title}</h1>
               <div className="flex items-center gap-3 mb-3">
                 <p className="text-lg text-gray-600 truncate">by {book.author}</p>
+                {console.log('BookDetails - book.authorSocials:', book.authorSocials)}
                 <AuthorSocials authorSocials={book.authorSocials} />
               </div>
               <div className="flex items-center gap-2 mb-4">
@@ -386,6 +387,7 @@ const BookDetails = () => {
               <h1 className="text-2xl font-bold text-gray-900 mb-1">{book.title}</h1>
               <div className="flex items-center gap-2 mb-2">
                 <p className="text-base text-gray-600 truncate">by {book.author}</p>
+                {console.log('BookDetails Mobile - book.authorSocials:', book.authorSocials)}
                 <AuthorSocials authorSocials={book.authorSocials} className="flex-shrink-0" />
               </div>
               {/* Stars & Price */}

@@ -10,7 +10,10 @@ interface AuthorSocialsProps {
 }
 
 const AuthorSocials: React.FC<AuthorSocialsProps> = ({ authorSocials, className = "" }) => {
+  console.log('AuthorSocials received:', authorSocials);
+  
   if (!authorSocials || (!authorSocials.instagram && !authorSocials.twitter && !authorSocials.tiktok)) {
+    console.log('No social media data provided');
     return null;
   }
 
