@@ -128,9 +128,40 @@ const FeaturedBooksManagement = () => {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Featured Books Management</h2>
-              <p className="text-gray-600">Manage books displayed in bestsellers and editor picks sections</p>
+            <div className="mb-6 flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Featured Books Management</h2>
+                <p className="text-gray-600">Manage books displayed in bestsellers and editor picks sections</p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (confirm('Are you sure you want to clear ALL featured books? This action cannot be undone.')) {
+                    try {
+                      const response = await fetch('/api/featured-books/clear-all', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                          'Content-Type': 'application/json'
+                        }
+                      });
+                      const result = await response.json();
+                      if (response.ok) {
+                        toast.success(result.message);
+                        // Refresh the page to update the lists
+                        window.location.reload();
+                      } else {
+                        toast.error(result.message || 'Failed to clear featured books');
+                      }
+                    } catch (error) {
+                      toast.error('Failed to clear featured books');
+                    }
+                  }
+                }}
+                className="ml-4"
+              >
+                Clear All Featured Books
+              </Button>
             </div>
 
         <Tabs value={activeTab} onValueChange={(value) => {
