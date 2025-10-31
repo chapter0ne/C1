@@ -1,9 +1,31 @@
 const User = require('../models/User');
+const UserLibrary = require('../models/UserLibrary');
 
 exports.getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find().select('-passwordHash');
-    res.json(users);
+    
+    // Get library counts for all users
+    const userIds = users.map(user => user._id);
+    const libraryCounts = await UserLibrary.aggregate([
+      { $match: { user: { $in: userIds } } },
+      { $group: { _id: '$user', count: { $sum: 1 } } }
+    ]);
+    
+    // Create a map of userId to library count
+    const libraryCountMap = {};
+    libraryCounts.forEach(item => {
+      libraryCountMap[item._id.toString()] = item.count;
+    });
+    
+    // Add library count to each user
+    const usersWithLibraryCount = users.map(user => {
+      const userObj = user.toObject();
+      userObj.libraryCount = libraryCountMap[user._id.toString()] || 0;
+      return userObj;
+    });
+    
+    res.json(usersWithLibraryCount);
   } catch (err) {
     next(err);
   }

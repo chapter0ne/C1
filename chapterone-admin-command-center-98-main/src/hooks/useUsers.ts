@@ -13,7 +13,8 @@ export const useUsers = () => {
         email: user.email,
         role: user.role || (user.roles ? user.roles[0] : 'reader'),
         joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '',
-        booksPurchased: user.booksPurchased || (user.book_purchases ? user.book_purchases.length : 0)
+        booksPurchased: user.booksPurchased || (user.book_purchases ? user.book_purchases.length : 0),
+        libraryCount: user.libraryCount || 0
       }));
     }
   });

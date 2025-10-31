@@ -106,6 +106,7 @@ const UserManagement = () => {
                       <TableHead>Role</TableHead>
                       <TableHead>Join Date</TableHead>
                       <TableHead>Books Purchased</TableHead>
+                      <TableHead>Library Count</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -121,6 +122,7 @@ const UserManagement = () => {
                         <TableCell className="capitalize">{user.role}</TableCell>
                         <TableCell>{user.joinDate}</TableCell>
                         <TableCell>{user.booksPurchased}</TableCell>
+                        <TableCell>{user.libraryCount || 0}</TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

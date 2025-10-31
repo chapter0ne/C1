@@ -275,7 +275,12 @@ const Search = () => {
       })
     : filteredBooks;
 
-  const displayBooks = searchFilteredBooks;
+  // Sort books by newest first (createdAt descending)
+  const displayBooks = [...searchFilteredBooks].sort((a: any, b: any) => {
+    const dateA = new Date(a.createdAt || a.uploadedAt || 0).getTime();
+    const dateB = new Date(b.createdAt || b.uploadedAt || 0).getTime();
+    return dateB - dateA; // Descending order (newest first)
+  });
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
