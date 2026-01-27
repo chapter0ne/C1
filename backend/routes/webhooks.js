@@ -2,6 +2,17 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 
+// Reachability check: GET /api/webhooks should return 200 so Nomba URL validation and debugging work
+router.get('/', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    webhooks: {
+      nomba: 'POST /api/webhooks/nomba for events, GET /api/webhooks/nomba for payment redirects',
+      url: '/api/webhooks/nomba',
+    },
+  });
+});
+
 /**
  * Verify Nomba webhook signature per https://developer.nomba.com/docs/api-basics/webhook
  * Headers: nomba-signature, nomba-timestamp. Hashing payload:
@@ -44,7 +55,8 @@ function verifyNombaWebhookSignature(req) {
 }
 
 // Nomba webhook handler - handles POST webhooks from Nomba
-router.post('/nomba', async (req, res) => {
+// Accept both /nomba and /nomba/ (trailing slash) so dashboard URL variations work
+const nombaPostHandler = async (req, res) => {
   try {
     const verify = verifyNombaWebhookSignature(req);
     if (!verify.verified) {
@@ -193,7 +205,8 @@ router.post('/nomba', async (req, res) => {
     console.error('Nomba webhook error:', error);
     res.status(500).json({ status: 'error', message: error.message });
   }
-});
+};
+router.post(['/nomba', '/nomba/'], nombaPostHandler);
 
 // Keep Paystack webhook for backward compatibility (can be removed later)
 router.post('/paystack', async (req, res) => {
@@ -247,15 +260,22 @@ router.post('/paystack', async (req, res) => {
 });
 
 // Handle GET requests for Nomba redirects (when user returns from payment page)
-router.get('/nomba', async (req, res) => {
+// If no query params, return 200 so Nomba dashboard URL validation and GET .../nomba reachability checks pass
+router.get(['/nomba', '/nomba/'], async (req, res) => {
   try {
-    // Log all query parameters to see what Nomba sends
-    console.log('Nomba redirect received - Full query:', JSON.stringify(req.query, null, 2));
-    
     const { orderReference, reference, transactionReference, transactionId, status, transactionRef } = req.query;
-    
-    // Use orderReference or reference (Nomba might send either)
     const paymentRef = orderReference || reference;
+
+    if (!paymentRef && !transactionReference && !transactionId) {
+      return res.status(200).json({
+        ok: true,
+        endpoint: 'Nomba webhook',
+        post: 'Send POST to this URL for webhook events',
+        get: 'GET with orderReference/status for payment redirects',
+      });
+    }
+
+    console.log('Nomba redirect received - Full query:', JSON.stringify(req.query, null, 2));
     const nombaTransactionRef = transactionReference || transactionId || transactionRef;
     
     console.log('Nomba redirect parsed:', { 
