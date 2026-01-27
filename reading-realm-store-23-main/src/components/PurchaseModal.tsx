@@ -144,7 +144,7 @@ const PurchaseModal = ({ isOpen, onClose, book, onPurchaseSuccess }: PurchaseMod
           <p className="text-xs text-gray-500 text-center">
             {book.isFree 
               ? "This book will be added to your library immediately."
-              : "Add to cart and proceed to checkout for secure payment via Paystack."
+              : "Add to cart and proceed to checkout for secure payment via Nomba."
             }
           </p>
         </div>

@@ -1,8 +1,11 @@
-const API_BASE = (window as any)._env_?.API_BASE || 'https://backend-8zug.onrender.com';
+// Use Vite environment variable first, then fallback
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://backend-8zug.onrender.com';
 
 // Log the actual API_BASE being used
-console.log('API_BASE configured as:', API_BASE);
-console.log('Environment variable _env_.API_BASE:', (window as any)._env_?.API_BASE);
+console.log('🌐 API Configuration:');
+console.log('  VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+console.log('  Final API_BASE:', API_BASE);
+console.log('  Full login URL:', `${API_BASE}/api/auth/login`);
 
 // Connection health tracking
 let connectionFailures = 0;

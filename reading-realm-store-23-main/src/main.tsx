@@ -4,10 +4,8 @@ import App from './App.tsx'
 import ErrorBoundary from './ErrorBoundary.tsx'
 import './index.css'
 import { registerServiceWorker } from './utils/serviceWorker'
-import { initializePaystack } from './utils/paystack'
 
-// Initialize Paystack
-initializePaystack();
+// Nomba payment is handled server-side, no client initialization needed
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 root.render(

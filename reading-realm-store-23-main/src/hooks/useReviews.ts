@@ -2,14 +2,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/utils/api';
 
 export const useReviews = (bookId: string) => {
-  const queryClient = useQueryClient();
-
   return useQuery({
     queryKey: ['reviews', bookId],
     queryFn: async () => {
-      return await api.get(`/reviews/book/${bookId}`);
+      const raw = await api.get(`/reviews/book/${bookId}`);
+      if (Array.isArray(raw)) return raw;
+      if (raw && typeof raw === 'object' && Array.isArray((raw as any).data)) return (raw as any).data;
+      if (raw && typeof raw === 'object' && Array.isArray((raw as any).reviews)) return (raw as any).reviews;
+      return [];
     },
     enabled: !!bookId,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 };
 
@@ -21,7 +25,25 @@ export const createReview = (bookId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['user-review', bookId] });
     },
+  });
+};
+
+export const useUserReview = (bookId: string) => {
+  return useQuery({
+    queryKey: ['user-review', bookId],
+    queryFn: async () => {
+      try {
+        return await api.get(`/reviews/book/${bookId}/user`);
+      } catch {
+        // Not logged in, network error, or no review - treat as no review
+        return null;
+      }
+    },
+    enabled: !!bookId,
+    retry: false,
   });
 };
 

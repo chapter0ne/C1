@@ -117,21 +117,16 @@ const Cart = () => {
 
     setIsCheckingOut(true);
     try {
-      // Initialize Paystack checkout with popup
+      // Initialize Nomba checkout - this will redirect to Nomba payment page
       await checkout.mutateAsync({
         selectedItems,
         userEmail: user.email,
         totalAmount
       });
       
-      // Success message will be shown by the payment success callback
-      toast({
-        title: "Payment Successful!",
-        description: `${selectedItems.length} book(s) have been added to your library.`,
-      });
-      
-      // Clear selected items
-      setSelectedItems([]);
+      // Note: User will be redirected to Nomba payment page
+      // Success notification will be shown after payment verification on return
+      // Don't show success toast here - payment hasn't been completed yet
       
     } catch (error) {
       console.error('Checkout error:', error);
@@ -335,7 +330,7 @@ const Cart = () => {
                     </Button>
 
                     <p className="text-xs text-gray-500 mt-3 text-center">
-                      Secure payment powered by Paystack
+                      Secure payment powered by Nomba
                     </p>
                   </CardContent>
                 </Card>

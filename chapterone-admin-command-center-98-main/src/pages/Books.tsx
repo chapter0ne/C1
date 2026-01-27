@@ -10,7 +10,7 @@ import { MoreHorizontal, Search, Eye, Edit, Trash2, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { usePublishedBooks } from "@/hooks/books/usePublishedBooks";
 import { useDeleteBook } from "@/hooks/books/useDeleteBook";
-import BookDetailsModal from "@/components/books/BookDetailsModal";
+import BookStatsModal from "@/components/BookStatsModal";
 import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -219,7 +219,7 @@ const Books = () => {
               )}
             </Button>
           </div>
-          <div className="overflow-y-auto">
+          <div className="max-h-[calc(100vh-280px)] overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -302,14 +302,15 @@ const Books = () => {
               </TableBody>
             </Table>
           </div>
-          {/* Book Details Modal */}
-          {selectedBookId && (
-            <BookDetailsModal 
-              isOpen={showDetails} 
-              onClose={() => setShowDetails(false)} 
-              bookId={selectedBookId} 
-            />
-          )}
+          {/* Book Stats Modal */}
+          <BookStatsModal
+            bookId={selectedBookId}
+            isOpen={showDetails}
+            onClose={() => {
+              setShowDetails(false);
+              setSelectedBookId(null);
+            }}
+          />
           {/* Edit Book Modal (placeholder) */}
           <Dialog open={showEdit} onOpenChange={setShowEdit}>
             <DialogContent className="max-w-2xl">

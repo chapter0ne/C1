@@ -46,6 +46,8 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 import UniversalHeader from "@/components/UniversalHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { formatText } from "@/utils/textFormatter";
+import ReviewModal from "@/components/ReviewModal";
+import { useUserReview } from "@/hooks/useReviews";
 // Theme configurations
 const themes = {
   'Morning Delight': {
@@ -125,9 +127,14 @@ const EnhancedBookReader = () => {
   // UI state
   const [showChapters, setShowChapters] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   // Add state for multi-page flow
   const [readerPage, setReaderPage] = useState(0); // 0: cover, 1: info, 2+: chapters
+
+  // Check if user has already reviewed this book
+  const { data: userReview } = useUserReview(id || '');
+  const hasReviewed = !!userReview;
 
   // Touch event handlers for swipe detection
   const [touchStart, setTouchStart] = useState<number>(0);
@@ -815,19 +822,32 @@ const EnhancedBookReader = () => {
                   <Settings className="w-4 h-4" />
                 </Button>
 
-                {/* Rating */}
+                {/* Review Button */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {}} // Review functionality disabled
-                  className="rounded-full transition-all duration-200 hover:scale-105 opacity-50 cursor-not-allowed"
+                  onClick={() => setShowReviewModal(true)}
+                  disabled={hasReviewed}
+                  className={`rounded-full transition-all duration-200 hover:scale-105 ${
+                    hasReviewed ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                   style={{ 
-                    color: isMidnight ? '#fff' : undefined,
+                    color: hasReviewed 
+                      ? '#9ca3af' 
+                      : (isMidnight ? '#fff' : currentTheme.text),
                     backgroundColor: 'transparent'
                   }}
-                  title="Review functionality disabled"
+                  onMouseEnter={(e) => {
+                    if (!hasReviewed) {
+                      e.currentTarget.style.backgroundColor = isMidnight ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                  title={hasReviewed ? "You have already reviewed this book" : "Write a review"}
                 >
-                  <Star className="w-4 h-4" />
+                  <Star className={`w-4 h-4 ${hasReviewed ? '' : 'fill-current'}`} />
                 </Button>
               </div>
             </div>
@@ -1275,6 +1295,15 @@ const EnhancedBookReader = () => {
       {/* Mobile Bottom Nav */}
       {/* Hide MobileBottomNav in reader page */}
 
+      {/* Review Modal */}
+      {id && (
+        <ReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          bookId={id}
+          themeColor={isMidnight ? '#fff' : currentTheme.text}
+        />
+      )}
 
     </div>
   );

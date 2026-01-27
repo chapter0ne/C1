@@ -11,6 +11,8 @@ router.put('/:bookId/progress', authMiddleware, userLibraryController.updateRead
 
 // Admin routes (require admin role)
 router.get('/book/:bookId/count', authMiddleware, adminOnly, userLibraryController.getBookLibraryCount);
+router.get('/book/:bookId/stats', authMiddleware, adminOnly, userLibraryController.getBookDetailedStats);
+router.get('/top-books', authMiddleware, adminOnly, userLibraryController.getTopBooksByLibraryCount);
 router.get('/', authMiddleware, adminOnly, userLibraryController.getAllLibraryEntries);
 
 module.exports = router; 

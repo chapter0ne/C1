@@ -185,14 +185,22 @@ router.get('/search', authMiddleware, async (req, res) => {
   }
 });
 
-// Get book by ID (public if published, admin can get any)
+// Get book by ID (public if published, admin can get any). Includes libraryCount (reads) for display.
 router.get('/:id', authMiddleware, async (req, res) => {
-  const book = await Book.findById(req.params.id);
-  if (!book) return res.status(404).json({ message: 'Book not found' });
-  if (book.status !== 'published' && !req.user.roles.includes('admin')) {
-    return res.status(403).json({ message: 'Not authorized' });
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ message: 'Book not found' });
+    if (book.status !== 'published' && !req.user.roles.includes('admin')) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    const UserLibrary = require('../models/UserLibrary');
+    const libraryCount = await UserLibrary.countDocuments({ book: req.params.id });
+    const out = book.toObject ? book.toObject() : { ...book };
+    out.libraryCount = libraryCount;
+    res.json(out);
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Error fetching book' });
   }
-  res.json(book);
 });
 
 // Get chapters for a book

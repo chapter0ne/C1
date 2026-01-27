@@ -2,11 +2,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/utils/api';
 import { 
-  createPaystackTransaction, 
-  verifyPaystackTransaction, 
-  generateReference,
-  initializePaystack 
-} from '@/utils/paystack';
+  createNombaCheckout,
+  verifyNombaTransaction,
+  generateOrderReference
+} from '@/utils/nomba';
 import { useEffect, useState } from 'react';
 
 // Local storage utilities for cart persistence
@@ -178,78 +177,27 @@ export const useCart = (userId: string) => {
       userEmail: string;
       totalAmount: number;
     }) => {
-      // Initialize Paystack
-      initializePaystack();
-      
-      // Generate unique reference for this transaction
-      const reference = generateReference();
-      
-      // Create success handler for payment
-      const handlePaymentSuccess = async (paymentReference: string) => {
-        try {
-          console.log('Payment successful, processing books...', { selectedItems, paymentReference });
-          
-          // Add each book to user's library as purchased
-          for (const bookId of selectedItems) {
-            try {
-              await api.post('/user-library', { bookId, isPurchased: true });
-              console.log(`Added book ${bookId} to library as purchased`);
-            } catch (error) {
-              console.error(`Failed to add book ${bookId} to library:`, error);
-              // Continue with other books even if one fails
-            }
-          }
-          
-          // Remove all selected items from cart
-          for (const bookId of selectedItems) {
-            try {
-              await api.del(`/cart/books/${bookId}`);
-              console.log(`Removed book ${bookId} from cart`);
-            } catch (error) {
-              console.error(`Failed to remove book ${bookId} from cart:`, error);
-              // Continue with other books even if one fails
-            }
-          }
-          
-          // Invalidate queries to refresh UI
-          queryClient.invalidateQueries({ queryKey: ['cart', userId] });
-          queryClient.invalidateQueries({ queryKey: ['userLibrary', userId] });
-          
-          // Clear local cart after successful payment
-          const emptyCart = { items: [], totalAmount: 0 };
-          setLocalCart(emptyCart);
-          clearCartFromStorage();
-          
-          console.log('Payment processing completed successfully');
-        } catch (error) {
-          console.error('Error processing payment success:', error);
-          throw error;
-        }
-      };
-      
-      // Create error handler for payment
-      const handlePaymentError = (error: string) => {
-        console.error('Payment error:', error);
-        // Error will be handled by the mutation's onError
-      };
-      
-      // Create Paystack transaction with callbacks
-      const paystackResponse = await createPaystackTransaction(
+      // Create Nomba checkout order
+      const nombaResponse = await createNombaCheckout(
         totalAmount,
         userEmail,
         selectedItems,
-        userId,
-        reference,
-        handlePaymentSuccess,
-        handlePaymentError
+        userId
       );
       
-      if (!paystackResponse.status) {
-        throw new Error(paystackResponse.message || 'Payment initialization failed');
+      if (!nombaResponse.success) {
+        throw new Error('Failed to create checkout order');
       }
       
-      // Return Paystack response
-      return paystackResponse;
+      // Redirect user to Nomba checkout page
+      if (nombaResponse.checkoutLink) {
+        window.location.href = nombaResponse.checkoutLink;
+      } else {
+        throw new Error('No checkout link received');
+      }
+      
+      // Return response (user will be redirected)
+      return nombaResponse;
     },
     onSuccess: () => {
       // Additional success handling if needed
@@ -262,27 +210,50 @@ export const useCart = (userId: string) => {
 
   const verifyPayment = useMutation({
     mutationFn: async (reference: string) => {
-      // Verify payment with Paystack
-      const verificationResponse = await verifyPaystackTransaction(reference);
+      // Verify payment with Nomba
+      const verificationResponse = await verifyNombaTransaction(reference);
       
-      if (!verificationResponse.status || verificationResponse.data.status !== 'success') {
-        throw new Error('Payment verification failed');
+      console.log('Verification response:', verificationResponse);
+      
+      // Check if verification was successful
+      if (!verificationResponse.success) {
+        const errorMessage = verificationResponse.message || 
+                            verificationResponse.error || 
+                            'Payment verification failed';
+        throw new Error(errorMessage);
       }
       
-      // Process successful payment on backend
-      const backendResponse = await api.post('/cart/process-payment', {
-        reference,
-        bookIds: verificationResponse.data.metadata.bookIds,
-        userId: verificationResponse.data.metadata.userId,
-        amount: verificationResponse.data.amount / 100, // Convert from kobo to naira
-        paystackData: verificationResponse.data
-      });
+      // Check if payment status is completed
+      // Backend returns status: 'completed' | 'pending' | 'failed' | 'cancelled'
+      const paymentStatus = verificationResponse.status;
       
-      return backendResponse;
+      if (paymentStatus !== 'completed') {
+        const statusMessage = paymentStatus === 'pending' 
+          ? 'Payment is still being processed. Please wait a moment and refresh.'
+          : paymentStatus === 'cancelled'
+          ? 'Payment was cancelled'
+          : paymentStatus === 'failed'
+          ? 'Payment failed'
+          : `Payment status: ${paymentStatus}`;
+        throw new Error(statusMessage);
+      }
+      
+      // Invalidate queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['cart', userId] });
+      queryClient.invalidateQueries({ queryKey: ['userLibrary', userId] });
+      
+      return verificationResponse;
     },
+    retry: false, // Disable automatic retries for payment verification
+    retryOnMount: false, // Don't retry when component mounts
+    retryOnWindowFocus: false, // Don't retry when window regains focus
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart', userId] });
       queryClient.invalidateQueries({ queryKey: ['userLibrary', userId] });
+    },
+    onError: (error) => {
+      // Log error but don't retry
+      console.error('Payment verification error (no retry):', error);
     },
   });
 

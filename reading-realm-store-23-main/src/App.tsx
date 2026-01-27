@@ -110,6 +110,7 @@ const AppRoutes = () => {
         <Route path="/author/:authorName" element={<ProtectedRoute><AuthorPage /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
         <Route path="/payment/verify" element={<ProtectedRoute><PaymentVerification /></ProtectedRoute>} />
+        <Route path="/payment-verification" element={<ProtectedRoute><PaymentVerification /></ProtectedRoute>} />
         <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />

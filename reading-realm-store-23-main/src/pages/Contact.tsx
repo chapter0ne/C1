@@ -172,7 +172,7 @@ const Contact = () => {
             <Card className="p-6">
               <h3 className="font-bold text-gray-900 mb-3">What payment methods do you accept?</h3>
               <p className="text-gray-600">
-                We accept all major payment methods through Paystack, including cards, bank 
+                We accept all major payment methods through Nomba, including cards, bank 
                 transfers, and mobile money.
               </p>
             </Card>

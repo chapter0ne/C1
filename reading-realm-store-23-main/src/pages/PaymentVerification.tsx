@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
@@ -19,30 +19,52 @@ const PaymentVerification = () => {
   const [verificationStatus, setVerificationStatus] = useState<'verifying' | 'success' | 'failed'>('verifying');
   const [verificationMessage, setVerificationMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Use ref to track processed payment references to prevent multiple executions
+  const processedRefs = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    const reference = searchParams.get('reference');
+    const trxref = searchParams.get('trxref');
+    const status = searchParams.get('status');
+    const paymentRef = reference || trxref || '';
+    
+    // Create a unique key for this payment attempt
+    const paymentKey = `${paymentRef}-${status || 'pending'}`;
+    
+    // Prevent multiple executions for the same payment
+    if (processedRefs.current.has(paymentKey)) {
+      return;
+    }
+
     const verifyPaymentStatus = async () => {
-      const reference = searchParams.get('reference');
-      const trxref = searchParams.get('trxref');
+      // Mark as processed IMMEDIATELY to prevent re-runs
+      processedRefs.current.add(paymentKey);
       
-      if (!reference && !trxref) {
-        setVerificationStatus('failed');
-        setVerificationMessage('No payment reference found');
+      // Handle cancelled payments FIRST - redirect immediately, no verification needed
+      if (status === 'cancelled' || status === 'cancel' || status === 'failed') {
+        toast({
+          title: "Payment Cancelled",
+          description: "You cancelled the payment process. No charges were made.",
+          variant: "default",
+          duration: 3000,
+        });
+        // Redirect to cart immediately - use replace to prevent back navigation
+        navigate('/cart?payment=cancelled', { replace: true });
         return;
       }
-
-      const paymentRef = reference || trxref;
       
       if (!paymentRef) {
         setVerificationStatus('failed');
-        setVerificationMessage('Invalid payment reference');
+        setVerificationMessage('No payment reference found');
+        setIsProcessing(false);
         return;
       }
 
       setIsProcessing(true);
       
       try {
-        // Verify payment with Paystack
+        // Verify payment with Nomba - only once
         await verifyPayment.mutateAsync(paymentRef);
         
         setVerificationStatus('success');
@@ -61,7 +83,7 @@ const PaymentVerification = () => {
         
         toast({
           title: "Payment Verification Failed",
-          description: "There was an issue verifying your payment. Please contact support.",
+          description: "There was an issue verifying your payment. Please contact support if you were charged.",
           variant: "destructive",
           duration: 5000,
         });
@@ -71,7 +93,7 @@ const PaymentVerification = () => {
     };
 
     verifyPaymentStatus();
-  }, [searchParams, verifyPayment, toast]);
+  }, [searchParams, toast, navigate, verifyPayment]);
 
   const handleGoToLibrary = () => {
     navigate('/library');

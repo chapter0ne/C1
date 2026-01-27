@@ -29,13 +29,15 @@ const UserManagement = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
         <Sidebar />
         
-        <div className="flex-1 flex flex-col">
-          <DashboardHeader />
+        <div className="flex-1 flex flex-col h-screen min-w-0">
+          <div className="sticky top-0 z-30 bg-white border-b flex-shrink-0">
+            <DashboardHeader />
+          </div>
           
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-6 overflow-y-auto">
             <div className="max-w-7xl">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
@@ -49,13 +51,15 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <Sidebar />
       
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader />
+      <div className="flex-1 flex flex-col h-screen min-w-0">
+        <div className="sticky top-0 z-30 bg-white border-b flex-shrink-0">
+          <DashboardHeader />
+        </div>
         
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-7xl">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -99,6 +103,7 @@ const UserManagement = () => {
                   </div>
                 </div>
                 
+                <div className="max-h-[calc(100vh-350px)] overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -143,6 +148,7 @@ const UserManagement = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </div>

@@ -4,7 +4,7 @@ import { useBookDetails, useBooks } from '@/hooks/useBooks';
 import { useReviews } from '@/hooks/useReviews';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Star, Heart, BookOpen, Pencil } from "lucide-react";
+import { Star, Heart, BookOpen, Pencil, Eye } from "lucide-react";
 import { useBookState } from "@/hooks/useBookState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/hooks/useWishlist";
@@ -21,8 +21,6 @@ import { getCoverImageUrl, hasCoverImage } from '@/utils/imageUtils';
 import { useToast } from "@/hooks/use-toast";
 import { useBookPurchaseStatus } from '@/hooks/usePurchaseHistory';
 
-const REVIEWS_PER_PAGE = 3;
-
 const BookDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -31,9 +29,8 @@ const BookDetails = () => {
   const { user } = useAuth();
   const { userLibrary, wishlist, cart, removeFromLibrary, addToLibrary, addToWishlist, removeFromWishlist } = useUserData();
   const { addToCart } = useCart(user?.id || '');
-  const { data: reviews = [], isLoading: reviewsLoading } = useReviews(id || '');
+  const { data: reviews = [], isLoading: reviewsLoading, isError: reviewsError, error: reviewsErrorDetail, refetch: refetchReviews } = useReviews(id || '');
 
-  const [reviewPage, setReviewPage] = useState(1);
   const { toast } = useToast();
 
   // Library logic
@@ -232,13 +229,10 @@ const BookDetails = () => {
   const isBookFree = book?.isFree === true || book?.is_free === true || book?.price === 0 || book?.price === '0' || book?.price === undefined || book?.price === null;
   const priceDisplay = isBookFree ? 'Free' : `₦${typeof book?.price === 'number' ? book.price.toLocaleString() : 'Free'}`;
 
-  // Star logic
+  // Star logic - use book.totalRatings for count (updated by backend when reviews are saved)
   const rating = typeof book?.rating === 'number' ? book.rating : 0;
-  const reviewCount = Array.isArray(reviews) ? reviews.length : 0;
+  const reviewCount = typeof book?.totalRatings === 'number' ? book.totalRatings : (Array.isArray(reviews) ? reviews.length : 0);
 
-  // Pagination for reviews
-  const totalPages = Math.ceil(reviewCount / REVIEWS_PER_PAGE) || 1;
-  const paginatedReviews = reviews.slice((reviewPage - 1) * REVIEWS_PER_PAGE, reviewPage * REVIEWS_PER_PAGE);
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (error || !book) return <div className="min-h-screen flex items-center justify-center text-red-500">Book not found.</div>;
@@ -417,53 +411,49 @@ const BookDetails = () => {
               </div>
             </div>
 
-            {/* Review functionality permanently disabled */}
-            <div className="block md:hidden mb-4 text-center py-4">
-              <p className="text-gray-500 text-sm">Review functionality is currently disabled</p>
-            </div>
-
-            {/* Reviews Section - Extended for desktop */}
-            <div className="bg-gray-50 rounded-xl shadow-inner p-4 md:min-h-[400px] md:max-h-[500px] min-h-[260px] max-h-[340px] overflow-y-auto flex flex-col justify-between">
-              <div className="flex items-center justify-between mb-3">
+            {/* Reviews Section - Fixed header, scrollable list only when content overflows */}
+            <div className="bg-gray-50 rounded-xl shadow-inner p-4 md:h-[500px] h-[340px] flex flex-col min-h-0">
+              <div className="flex items-center justify-between mb-3 flex-shrink-0 border-b border-gray-200 pb-2">
                 <h2 className="text-lg font-bold">Reviews</h2>
-                {/* Review functionality permanently disabled */}
-                <div className="hidden md:block text-center py-2">
-                  <p className="text-gray-500 text-sm">Review functionality is currently disabled</p>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <span className="flex items-center gap-1.5" title="Number of reads">
+                    <Eye className="h-4 w-4" aria-hidden />
+                    <span>{typeof (book as any)?.libraryCount === 'number' ? (book as any).libraryCount : 0} reads</span>
+                  </span>
+                  <span>({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})</span>
                 </div>
               </div>
-              {reviewsLoading ? (
-                <div>Loading reviews...</div>
-              ) : (
-                <>
-                  {paginatedReviews.length === 0 ? (
-                    <div className="text-gray-500 text-center py-8">No reviews yet.</div>
-                  ) : (
-                    <ul className="divide-y divide-gray-200">
-                      {paginatedReviews.map((review: any) => (
-                        <li key={review._id || review.id} className="py-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className={`w-4 h-4 ${i < Math.round(review.rating) ? 'text-black fill-black' : 'text-black'}`} />
-                            ))}
-                            <span className="font-medium text-sm text-black ml-1">{typeof review.rating === 'number' ? review.rating.toFixed(1) : '0.0'}</span>
-                            <span className="text-xs text-gray-500 ml-2">{review.user?.username || 'Anonymous'}</span>
-                            <span className="text-xs text-gray-400 ml-auto">{review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}</span>
-                          </div>
-                          <div className="text-gray-700 text-sm">{review.comment || review.reviewText}</div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex justify-center gap-2 mt-4">
-                      <Button size="sm" variant="outline" disabled={reviewPage === 1} onClick={() => setReviewPage(p => Math.max(1, p - 1))}>Prev</Button>
-                      <span className="text-sm font-medium">Page {reviewPage} of {totalPages}</span>
-                      <Button size="sm" variant="outline" disabled={reviewPage === totalPages} onClick={() => setReviewPage(p => Math.min(totalPages, p + 1))}>Next</Button>
-                    </div>
-                  )}
-                </>
-              )}
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                {reviewsLoading ? (
+                  <div className="text-center py-8">Loading reviews...</div>
+                ) : reviewsError ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600 mb-3">Couldn&apos;t load reviews.</p>
+                    <p className="text-sm text-gray-500 mb-3">{reviewsErrorDetail instanceof Error ? reviewsErrorDetail.message : 'Something went wrong.'}</p>
+                    <Button variant="outline" size="sm" onClick={() => refetchReviews()}>Retry</Button>
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <div className="text-gray-500 text-center py-8">No reviews yet.</div>
+                ) : (
+                  <ul className="divide-y divide-gray-200 pr-1">
+                    {reviews.map((review: any) => (
+                      <li key={review._id || review.id} className="py-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`w-4 h-4 flex-shrink-0 ${i < Math.round(review.rating) ? 'text-black fill-black' : 'text-gray-300'}`} />
+                          ))}
+                          <span className="font-medium text-sm text-black ml-1">{typeof review.rating === 'number' ? review.rating.toFixed(1) : '0.0'}</span>
+                          <span className="text-xs text-gray-500 ml-2">{review.user?.username || 'Anonymous'}</span>
+                          <span className="text-xs text-gray-400 ml-auto">{review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}</span>
+                        </div>
+                        {review.reviewText && (
+                          <div className="text-gray-700 text-sm mt-1">{review.reviewText}</div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </div>

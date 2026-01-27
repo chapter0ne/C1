@@ -44,7 +44,7 @@ const PaymentStatus = ({ isProcessing, onSuccess, onError }: PaymentStatusProps)
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <CreditCard className="w-4 h-4" />
-              <span>Initializing Paystack</span>
+              <span>Initializing payment</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <CreditCard className="w-4 h-4" />
@@ -68,7 +68,7 @@ const PaymentStatus = ({ isProcessing, onSuccess, onError }: PaymentStatusProps)
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Payment Initiated</h3>
           <p className="text-gray-600 mb-4">{message}</p>
           <p className="text-sm text-gray-500">
-            You will be redirected to Paystack to complete your payment.
+            You will be redirected to complete your payment.
           </p>
         </CardContent>
       </Card>

@@ -2,75 +2,22 @@ const express = require('express');
 const Review = require('../models/Review');
 const router = express.Router();
 const reviewController = require('../controllers/reviewController');
+const { authMiddleware } = require('../middleware/auth');
 
-// Get all reviews
-router.get('/', async (req, res) => {
-  try {
-    const reviews = await Review.find();
-    res.json(reviews);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// Get user's review for a specific book (authenticated) - must be before /book/:bookId
+router.get('/book/:bookId/user', authMiddleware, reviewController.getUserReview);
 
-// Get a single review by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const review = await Review.findById(req.params.id);
-    if (!review) return res.status(404).json({ message: 'Review not found' });
-    res.json(review);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Create a new review
-router.post('/', async (req, res) => {
-  try {
-    const review = new Review(req.body);
-    await review.save();
-    
-    // Update book rating after saving review
-    await Review.updateBookRating(review.book);
-    
-    res.status(201).json(review);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
-// Update a review
-router.put('/:id', async (req, res) => {
-  try {
-    const review = await Review.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!review) return res.status(404).json({ message: 'Review not found' });
-    
-    // Update book rating after updating review
-    await Review.updateBookRating(review.book);
-    
-    res.json(review);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
-// Delete a review
-router.delete('/:id', async (req, res) => {
-  try {
-    const review = await Review.findByIdAndDelete(req.params.id);
-    if (!review) return res.status(404).json({ message: 'Review not found' });
-    
-    // Update book rating after deleting review
-    await Review.updateBookRating(review.book);
-    
-    res.json({ message: 'Review deleted' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Get all reviews for a specific book
+// Get all reviews for a specific book (public)
 router.get('/book/:bookId', reviewController.getReviewsByBook);
+
+// Create a new review (authenticated)
+router.post('/', authMiddleware, reviewController.createReview);
+
+// Update a review (authenticated)
+router.put('/:id', authMiddleware, reviewController.updateReview);
+
+// Delete a review (authenticated)
+router.delete('/:id', authMiddleware, reviewController.deleteReview);
 
 module.exports = router; 
 

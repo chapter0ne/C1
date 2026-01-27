@@ -21,47 +21,44 @@ console.log('Upload limits configured:', {
 
 const app = express();
 
-// CORS configuration for production
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Allow localhost for development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
-    }
-    
-    // Allow your frontend domains
-    const allowedOrigins = [
-      'https://chapterone.page',
-      'https://www.chapterone.page',
-      'https://read.chapterone.page',
-      'https://www.read.chapterone.page',
-      'https://adminaccess.chapterone.page',
-      'https://www.adminaccess.chapterone.page',
-      'https://adminaccess.chapterone.dev',
-      'https://www.adminaccess.chapterone.dev',
-      'https://read.chapterone.dev',
-      'https://www.read.chapterone.dev',
-      'https://chapterone.dev',
-      'https://www.chapterone.dev'
-    ];
-    
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    // For now, allow all origins in development
-    // In production, replace this with your actual domains
-    callback(null, true);
-  },
+// 🔥 LOG FIRST to see if requests reach server
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🔵 [${timestamp}] ${req.method} ${req.path}`);
+  console.log(`   Origin: ${req.headers.origin || 'no origin'}`);
+  console.log(`   Headers:`, JSON.stringify(req.headers, null, 2));
+  next();
+});
+
+// 🔥 MANUAL CORS - Express 5 compatible, handle ALL origins
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // ALWAYS set CORS headers, even if no origin (for same-origin requests)
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Type, Authorization');
+  
+  // Handle OPTIONS preflight IMMEDIATELY
+  if (req.method === 'OPTIONS') {
+    console.log('🚨 OPTIONS preflight handled - returning 204');
+    return res.status(204).end();
+  }
+  
+  next();
+});
+
+// Also use cors package as backup
+app.use(cors({
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
-
-app.use(cors(corsOptions));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Large upload handling middleware
 app.use(largeUploadHandler);
@@ -113,6 +110,8 @@ const userLibraryRoutes = require('./routes/userLibrary');
 const readingListRoutes = require('./routes/reading-lists');
 const wishlistRoutes = require('./routes/wishlist');
 const cartRoutes = require('./routes/cart');
+const paymentRoutes = require('./routes/payments');
+const webhookRoutes = require('./routes/webhooks');
 
 app.use(logger);
 
@@ -130,15 +129,28 @@ app.use('/api/user-library', userLibraryRoutes);
 app.use('/api/reading-lists', readingListRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/webhooks', webhookRoutes);
 app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
 app.use('/api/upload', uploadRoutes);
 
 // Health check endpoint for Render
 app.get('/api/health', (req, res) => {
+  console.log('✅ Health check endpoint hit!');
   res.status(200).json({ 
     status: 'OK', 
     message: 'ChapterOne Backend is running',
     timestamp: new Date().toISOString()
+  });
+});
+
+// Simple test endpoint to verify server is receiving requests
+app.get('/api/test', (req, res) => {
+  console.log('✅ Test endpoint hit!');
+  res.status(200).json({ 
+    message: 'Backend is working!',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin || 'no origin'
   });
 });
 
@@ -150,9 +162,18 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || '0.0.0.0';
+// Use localhost for local development, 0.0.0.0 for production/docker
+const HOST = process.env.HOST || 'localhost';
 
 app.listen(PORT, HOST, () => {
-  console.log(`Server running on http://${HOST}:${PORT}`);
-  console.log(`Health check available at http://${HOST}:${PORT}/api/health`);
+  console.log('\n╔═══════════════════════════════════════════════════════╗');
+  console.log('║   🚀 ChapterOne Backend Server Started!                ║');
+  console.log('╠═══════════════════════════════════════════════════════╣');
+  console.log(`║   Server: http://${HOST}:${PORT}                      ║`);
+  console.log(`║   Health: http://${HOST}:${PORT}/api/health           ║`);
+  console.log(`║   Test:   http://${HOST}:${PORT}/api/test             ║`);
+  console.log(`║   Local:  http://localhost:${PORT}                     ║`);
+  console.log('║                                                       ║');
+  console.log('║   📝 All requests will be logged below...            ║');
+  console.log('╚═══════════════════════════════════════════════════════╝\n');
 }); 

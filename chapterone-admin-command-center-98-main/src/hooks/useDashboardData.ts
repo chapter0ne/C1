@@ -25,22 +25,20 @@ export const useDashboardData = () => {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      // Filter successful purchases (Paystack successful payments)
-      const successfulPurchases = purchases.filter(p => 
-        p.status === 'completed' || p.status === 'success' || p.transactionId
-      );
+      // Filter ONLY completed purchases for sales calculations (status must be 'completed')
+      const successfulPurchases = purchases.filter(p => p.status === 'completed');
 
-      // Monthly purchases (successful payments from start of month)
+      // Monthly purchases (completed payments from start of month)
       const monthlyPurchases = successfulPurchases.filter(p => 
         new Date(p.purchasedAt || p.createdAt) >= startOfMonth
       );
       
-      // Today's purchases
+      // Today's purchases (completed payments)
       const todayPurchases = successfulPurchases.filter(p => 
         new Date(p.purchasedAt || p.createdAt) >= startOfToday
       );
       
-      // Total purchases cost this month
+      // Total purchases cost this month (only completed transactions)
       const totalMonthlyCost = monthlyPurchases.reduce((sum, purchase) => 
         sum + Number(purchase.amountPaid || purchase.amount_paid || 0), 0
       );
@@ -61,7 +59,7 @@ export const useDashboardData = () => {
         new Date(r.createdAt) >= startOfToday
       ).length;
       
-      // Recent sales (last 5 successful purchases)
+      // Recent sales (last 5 completed purchases)
       const recentSales = successfulPurchases
         .sort((a, b) => new Date(b.purchasedAt || b.createdAt) - new Date(a.purchasedAt || a.createdAt))
         .slice(0, 5);
@@ -77,7 +75,8 @@ export const useDashboardData = () => {
       return {
         currentUserProfile,
         monthlyPurchases,
-        allSales: successfulPurchases, // All successful sales for filtering
+        allSales: purchases, // All purchases (with all statuses) for display in table
+        successfulSales: successfulPurchases, // Only completed purchases for filtering
         todayPurchasesCount: todayPurchases.length,
         totalMonthlyCost,
         todayUsersCount,

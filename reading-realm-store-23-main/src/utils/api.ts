@@ -34,6 +34,8 @@ async function request(method: string, url: string, data?: any) {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
+    credentials: 'include', // Include credentials for CORS
+    mode: 'cors', // Explicitly set CORS mode
   };
   
   try {
@@ -45,12 +47,13 @@ async function request(method: string, url: string, data?: any) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
       console.error(`API error for ${url}:`, err);
       
-      // Handle authentication errors gracefully
+      // Handle authentication errors gracefully (don't redirect for public endpoints)
       if (res.status === 401 || res.status === 403 || err.message?.includes('token')) {
-        if (url !== '/books' && url !== '/books/' && !url.startsWith('/books?') && url !== '/auth/me') {
+        const isPublic = url === '/books' || url === '/books/' || url.startsWith('/books?') || url === '/auth/me' || (method === 'GET' && url.startsWith('/reviews/book/'));
+        if (!isPublic) {
           redirectToAuth();
         }
-        throw new Error('Authentication required');
+        throw new Error(err.message || 'Authentication required');
       }
       
       throw new Error(err.message || 'API error');
@@ -62,8 +65,9 @@ async function request(method: string, url: string, data?: any) {
   } catch (error) {
     console.error(`API ${method} ${url} failed:`, error);
     // If error is authentication, redirect
-    if (error instanceof Error && error.message === 'Authentication required') {
-      if (url !== '/books' && url !== '/books/' && !url.startsWith('/books?') && url !== '/auth/me') {
+    if (error instanceof Error && (error.message === 'Authentication required' || error.message.includes('token'))) {
+      const isPublic = url === '/books' || url === '/books/' || url.startsWith('/books?') || url === '/auth/me' || (method === 'GET' && url.startsWith('/reviews/book/'));
+      if (!isPublic) {
         redirectToAuth();
       }
     }

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, ZoomIn, ZoomOut, Menu, X, Settings, Sun, Sunset, Moon, Hand, Fingerprint } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, ZoomIn, ZoomOut, Menu, X, Settings, Sun, Sunset, Moon, Hand, Fingerprint, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ReviewModal from "@/components/ReviewModal";
+import { useUserReview } from "@/hooks/useReviews";
 import ePub, { Book, Rendition } from "epubjs";
 
 interface EpubReaderProps {
@@ -29,6 +31,9 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
   const [currentChapterTitle, setCurrentChapterTitle] = useState<string>("");
   const [isTocButtonFaded, setIsTocButtonFaded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const { data: userReview } = useUserReview(bookId);
+  const hasReviewed = !!userReview;
   const [theme, setTheme] = useState<'morning' | 'evening' | 'midnight'>(() => {
     const saved = localStorage.getItem('epub-reader-theme');
     return (saved as 'morning' | 'evening' | 'midnight') || 'morning';
@@ -1008,6 +1013,19 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
 
             <div className="flex items-center gap-2" style={{ position: 'relative', zIndex: 1002 }}>
               <button 
+                onClick={() => setShowReviewModal(true)}
+                disabled={hasReviewed}
+                className={`p-2 hover:bg-gray-100/50 rounded-lg transition-all duration-200 active:scale-95 ${hasReviewed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={hasReviewed ? "You have already reviewed this book" : "Write a review"}
+              >
+                <Star className={`w-6 h-6 transition-colors duration-300 ${
+                  hasReviewed ? 'text-gray-400' :
+                  theme === 'morning' ? 'text-gray-900 fill-gray-900' :
+                  theme === 'evening' ? 'text-[#2a2a2a] fill-[#2a2a2a]' :
+                  'text-gray-100 fill-gray-100'
+                }`} />
+              </button>
+              <button 
                 onClick={() => setShowSettings(!showSettings)}
                 className="p-2 hover:bg-gray-100/50 rounded-lg transition-all duration-200 active:scale-95"
               >
@@ -1680,6 +1698,20 @@ const EpubReader = ({ epubUrl, bookTitle, bookId, onClose }: EpubReaderProps) =>
           </div>
         </div>
       </>
+
+      {/* Review Modal */}
+      {bookId && (
+        <ReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          bookId={bookId}
+          themeColor={
+            theme === 'morning' ? '#1a1a1a' :
+            theme === 'evening' ? '#2a2a2a' :
+            '#e5e5e5'
+          }
+        />
+      )}
     </div>
   );
 };

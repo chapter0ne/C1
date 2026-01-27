@@ -12,8 +12,9 @@ const purchaseSchema = new mongoose.Schema({
   },
   transactionId: { type: String, unique: true },
   paymentReference: { type: String },
-  paymentMethod: { type: String, default: 'paystack' },
-  paystackData: { type: mongoose.Schema.Types.Mixed }
+  paymentMethod: { type: String, default: 'nomba' },
+  nombaData: { type: mongoose.Schema.Types.Mixed },
+  paystackData: { type: mongoose.Schema.Types.Mixed } // Keep for backward compatibility
 }, { timestamps: true });
 
 module.exports = mongoose.model('Purchase', purchaseSchema); 

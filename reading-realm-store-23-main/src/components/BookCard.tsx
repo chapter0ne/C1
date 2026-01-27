@@ -159,8 +159,8 @@ const BookCard = ({
             <p className="text-xs text-gray-600 truncate">{book.author}</p>
             <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
               <div className="flex items-center gap-1">
-                <Star className="w-3 h-3 text-black fill-black" />
-                <span>{typeof book.rating === 'number' ? book.rating.toFixed(1) : '0.0'}</span>
+                <Star className={`w-3 h-3 ${book.totalRatings > 0 ? 'text-black fill-black' : 'text-gray-300 fill-gray-300'}`} />
+                <span>{typeof book.rating === 'number' ? book.rating.toFixed(1) : '5.0'}</span>
               </div>
               <span className={`font-semibold ${book.isFree ? 'text-green-600' : 'text-gray-900'}`}>
                 {book.isFree ? 'Free' : `₦${typeof book.price === 'number' ? book.price.toLocaleString() : 0}`}
@@ -302,11 +302,11 @@ const BookCard = ({
           {/* Rating and Price on same line */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1">
-              <Star className={`${variant === 'compact' ? 'w-2 h-2' : 'w-3 h-3'} text-black fill-black`} />
+              <Star className={`${variant === 'compact' ? 'w-2 h-2' : 'w-3 h-3'} ${book.totalRatings > 0 ? 'text-black fill-black' : 'text-gray-300 fill-gray-300'}`} />
               <span className={`text-gray-700 font-medium ${
                 variant === 'compact' ? 'text-xs' : 'text-sm'
               }`}>
-                {typeof book.rating === 'number' ? book.rating.toFixed(1) : '0.0'}
+                {typeof book.rating === 'number' ? book.rating.toFixed(1) : '5.0'}
               </span>
             </div>
             <div className="text-right">

@@ -35,14 +35,14 @@ userSchema.virtual('id').get(function () {
   return this._id.toHexString();
 });
 
-// Virtual for follower count
+// Virtual for follower count (guard when only partial fields are loaded, e.g. populate('user', 'username'))
 userSchema.virtual('followerCount').get(function() {
-  return this.followers.length;
+  return Array.isArray(this.followers) ? this.followers.length : 0;
 });
 
 // Virtual for following count
 userSchema.virtual('followingCount').get(function() {
-  return this.following.length;
+  return Array.isArray(this.following) ? this.following.length : 0;
 });
 
 userSchema.set('toJSON', { virtuals: true });
