@@ -86,12 +86,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
-
-
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -161,19 +155,20 @@ app.get('/', (req, res) => {
 // Error handler (should be last)
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-// Use localhost for local development, 0.0.0.0 for production/docker
-const HOST = process.env.HOST || 'localhost';
+// Render requires binding to 0.0.0.0 and process.env.PORT — start server first so port is open when Render scans
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.PORT ? '0.0.0.0' : (process.env.HOST || 'localhost');
 
-app.listen(PORT, HOST, () => {
-  console.log('\n╔═══════════════════════════════════════════════════════╗');
-  console.log('║   🚀 ChapterOne Backend Server Started!                ║');
-  console.log('╠═══════════════════════════════════════════════════════╣');
-  console.log(`║   Server: http://${HOST}:${PORT}                      ║`);
-  console.log(`║   Health: http://${HOST}:${PORT}/api/health           ║`);
-  console.log(`║   Test:   http://${HOST}:${PORT}/api/test             ║`);
-  console.log(`║   Local:  http://localhost:${PORT}                     ║`);
-  console.log('║                                                       ║');
-  console.log('║   📝 All requests will be logged below...            ║');
-  console.log('╚═══════════════════════════════════════════════════════╝\n');
+const server = app.listen(PORT, HOST, () => {
+  console.log(`\nServer listening on ${HOST}:${PORT} (Render expects 0.0.0.0:PORT)`);
+  console.log('Health: /api/health\n');
+  // Connect to MongoDB after port is open so Render detects the port immediately
+  mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('MongoDB connected'))
+    .catch((err) => console.error('MongoDB connection error:', err));
+});
+
+server.on('error', (err) => {
+  console.error('Server failed to bind:', err.message);
+  if (err.code === 'EADDRINUSE') console.error(`Port ${PORT} is already in use`);
 }); 

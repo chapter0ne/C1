@@ -18,10 +18,12 @@ Set these environment variables in your Render dashboard:
 ## Deployment Steps
 
 1. **Connect Repository**: Connect your GitHub repository to Render
-2. **Set Environment Variables**: Add all required environment variables in Render dashboard
+2. **Root Directory**: Set to `backend` (so Build/Start run from the backend folder)
 3. **Build Command**: `npm install`
 4. **Start Command**: `npm start`
-5. **Health Check**: The app includes a health check at `/api/health`
+5. **Environment Variables**: Add all required variables in Render (see above). Render sets `PORT` automatically (default 10000).
+6. **Health Check Path**: In Render → your service → Settings → Health Check Path, set to `/api/health`
+7. The server binds to `0.0.0.0:PORT` as soon as it starts (before MongoDB connects) so Render detects the open port.
 
 ## Backend Features
 
