@@ -1,18 +1,68 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
+
+/**
+ * Verify Nomba webhook signature per https://developer.nomba.com/docs/api-basics/webhook
+ * Headers: nomba-signature, nomba-timestamp. Hashing payload:
+ * event_type:requestId:userId:walletId:transactionId:type:time:responseCode:timestamp
+ */
+function verifyNombaWebhookSignature(req) {
+  const secret = process.env.NOMBA_WEBHOOK_SECRET;
+  if (!secret) return { verified: true }; // skip when not configured
+
+  const signature = (req.headers['nomba-signature'] || req.headers['nomba-sig-value'] || '').trim();
+  const timestamp = (req.headers['nomba-timestamp'] || '').trim();
+  if (!signature) return { verified: false, reason: 'missing nomba-signature header' };
+
+  const body = req.body || {};
+  const eventType = body.event_type ?? body.event ?? '';
+  const requestId = body.requestId ?? body.request_id ?? '';
+  const data = body.data || {};
+  const merchant = data.merchant || {};
+  const transaction = data.transaction || {};
+  const userId = merchant.userId ?? merchant.user_id ?? '';
+  const walletId = merchant.walletId ?? merchant.wallet_id ?? '';
+  const transactionId = transaction.transactionId ?? transaction.transaction_id ?? '';
+  const type = transaction.type ?? '';
+  const time = transaction.time ?? '';
+  let responseCode = transaction.responseCode ?? transaction.response_code ?? '';
+  if (responseCode === 'null') responseCode = '';
+
+  const hashingPayload = `${eventType}:${requestId}:${userId}:${walletId}:${transactionId}:${type}:${time}:${responseCode}:${timestamp}`;
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(hashingPayload);
+  const computed = hmac.digest('base64');
+
+  // Both signature and computed are base64 strings; compare constant-time
+  const sigBuf = Buffer.from(signature, 'utf8');
+  const compBuf = Buffer.from(computed, 'utf8');
+  if (sigBuf.length !== compBuf.length || !crypto.timingSafeEqual(sigBuf, compBuf)) {
+    return { verified: false, reason: 'signature mismatch' };
+  }
+  return { verified: true };
+}
 
 // Nomba webhook handler - handles POST webhooks from Nomba
 router.post('/nomba', async (req, res) => {
   try {
+    const verify = verifyNombaWebhookSignature(req);
+    if (!verify.verified) {
+      console.warn('Nomba webhook signature verification failed:', verify.reason);
+      return res.status(401).json({ status: 'error', message: 'Invalid webhook signature' });
+    }
+
     const { event, data } = req.body;
-    
+    const eventType = req.body.event_type ?? event;
+
     // Log full webhook payload for debugging
     console.log('Nomba webhook received - Full payload:', JSON.stringify(req.body, null, 2));
-    console.log('Nomba webhook event:', event);
+    console.log('Nomba webhook event:', eventType ?? event);
     console.log('Nomba webhook data keys:', data ? Object.keys(data) : 'no data');
-    
-    // Handle different Nomba webhook events
-    if (event === 'payment.success' || event === 'order.completed') {
+
+    // Handle different Nomba webhook events (Nomba may send event or event_type)
+    const ev = eventType ?? event;
+    if (ev === 'payment.success' || ev === 'payment_success' || ev === 'order.completed') {
       const { orderReference, reference, transactionReference, transactionId, amount, status, customerEmail, metadata } = data;
       
       // Nomba might send the reference in different fields
@@ -121,7 +171,7 @@ router.post('/nomba', async (req, res) => {
         console.log('Purchase not found for reference:', paymentRef || orderReference);
         console.log('Searched for:', { paymentRef, orderReference });
       }
-    } else if (event === 'payment.failed' || event === 'order.failed') {
+    } else if (ev === 'payment.failed' || ev === 'payment_failed' || ev === 'order.failed') {
       const { orderReference, reference, transactionReference, transactionId } = data;
       const paymentRef = orderReference || reference || transactionReference || transactionId;
       const Purchase = require('../models/Purchase');
