@@ -238,7 +238,7 @@ router.get('/verify/:reference', authMiddleware, async (req, res) => {
       console.log('Nomba verification failed:', verificationResult.error);
 
       // Re-fetch purchase: redirect or webhook may have completed it after we first loaded
-      const freshPurchase = await Purchase.findById(purchase._id);
+      let freshPurchase = await Purchase.findById(purchase._id);
       if (freshPurchase && freshPurchase.status === 'completed') {
         console.log('Purchase was completed by redirect/webhook; returning success');
         const meta = freshPurchase.nombaData?.metadata || freshPurchase.nombaData?.fullResponse?.metadata;
@@ -253,6 +253,29 @@ router.get('/verify/:reference', authMiddleware, async (req, res) => {
           message: 'Payment already verified',
           purchase: freshPurchase,
         });
+      }
+
+      // If purchase is still pending, webhook may be delayed. Wait and re-check once before failing.
+      if (freshPurchase && freshPurchase.status === 'pending') {
+        const waitMs = 2500;
+        console.log('Purchase still pending; waiting', waitMs, 'ms for webhook then re-checking...');
+        await new Promise((r) => setTimeout(r, waitMs));
+        freshPurchase = await Purchase.findById(purchase._id);
+        if (freshPurchase && freshPurchase.status === 'completed') {
+          console.log('Purchase completed by webhook during wait; returning success');
+          const meta = freshPurchase.nombaData?.metadata || freshPurchase.nombaData?.fullResponse?.metadata;
+          if (meta && meta.bookIds) {
+            const ids = Array.isArray(meta.bookIds) ? meta.bookIds : [meta.bookIds];
+            const { removeBooksFromUserCart } = require('../utils/cartHelpers');
+            await removeBooksFromUserCart(freshPurchase.user.toString(), ids);
+          }
+          return res.json({
+            success: true,
+            status: 'completed',
+            message: 'Payment verified',
+            purchase: freshPurchase,
+          });
+        }
       }
 
       // If verification fails with 404, it might mean:
@@ -276,6 +299,7 @@ router.get('/verify/:reference', authMiddleware, async (req, res) => {
         message: 'Transaction verification failed. If payment was successful, please wait a moment and refresh.',
         error: verificationResult.error,
         purchaseStatus: purchaseToUpdate.status,
+        retrySuggested: purchaseToUpdate.status === 'pending',
         note: purchaseToUpdate.status === 'pending' ? 'Payment may still be processing. Webhook will update status automatically.' : undefined
       });
     }

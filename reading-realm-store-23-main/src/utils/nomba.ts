@@ -77,13 +77,19 @@ export const verifyNombaTransaction = async (
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to verify transaction');
+      const error = await response.json().catch(() => ({}));
+      const msg = error.message || 'Failed to verify transaction';
+      const err = new Error(msg) as Error & { retrySuggested?: boolean };
+      err.retrySuggested = error.retrySuggested === true;
+      throw err;
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
     console.error('Error verifying Nomba transaction:', error);
     throw new Error('Failed to verify payment');
   }

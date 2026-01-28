@@ -64,7 +64,7 @@ const PaymentVerification = () => {
       setIsProcessing(true);
       
       try {
-        // Verify payment with Nomba - only once
+        // Verify payment with Nomba (backend may suggest retry if webhook is delayed)
         await verifyPayment.mutateAsync(paymentRef);
         
         setVerificationStatus('success');
@@ -77,16 +77,43 @@ const PaymentVerification = () => {
         });
         
       } catch (error) {
-        console.error('Payment verification failed:', error);
-        setVerificationStatus('failed');
-        setVerificationMessage(error instanceof Error ? error.message : 'Payment verification failed');
+        const err = error as Error & { retrySuggested?: boolean };
+        const shouldRetry = err.retrySuggested === true;
         
-        toast({
-          title: "Payment Verification Failed",
-          description: "There was an issue verifying your payment. Please contact support if you were charged.",
-          variant: "destructive",
-          duration: 5000,
-        });
+        if (shouldRetry) {
+          // Webhook may be delayed; retry once after a short wait
+          await new Promise((r) => setTimeout(r, 3000));
+          try {
+            await verifyPayment.mutateAsync(paymentRef);
+            setVerificationStatus('success');
+            setVerificationMessage('Payment verified successfully! Your books have been added to your library.');
+            toast({
+              title: "Payment Successful!",
+              description: "Your books have been added to your library. You now have lifetime access to them.",
+              duration: 5000,
+            });
+          } catch (retryError) {
+            console.error('Payment verification failed after retry:', retryError);
+            setVerificationStatus('failed');
+            setVerificationMessage(retryError instanceof Error ? retryError.message : 'Payment verification failed');
+            toast({
+              title: "Payment Verification Failed",
+              description: "There was an issue verifying your payment. Please contact support if you were charged.",
+              variant: "destructive",
+              duration: 5000,
+            });
+          }
+        } else {
+          console.error('Payment verification failed:', error);
+          setVerificationStatus('failed');
+          setVerificationMessage(err?.message || 'Payment verification failed');
+          toast({
+            title: "Payment Verification Failed",
+            description: "There was an issue verifying your payment. Please contact support if you were charged.",
+            variant: "destructive",
+            duration: 5000,
+          });
+        }
       } finally {
         setIsProcessing(false);
       }
