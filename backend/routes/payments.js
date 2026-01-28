@@ -311,37 +311,59 @@ router.get('/verify/:reference', authMiddleware, async (req, res) => {
     };
 
     // Extract transaction data - handle different response structures
-    // Nomba checkout/transaction endpoint returns data in data.data or data format
-    const transactionData = verificationResult.data?.data || verificationResult.data || {};
+    // Nomba checkout/transaction endpoint returns top-level { code, description, data }
+    // where data contains { order, transactionDetails, ... }.
+    const rootData = verificationResult.data || {};
+    const transactionData = rootData.data || rootData || {};
     const orderData = transactionData.order || transactionData;
-    
+    const transactionDetails = transactionData.transactionDetails || transactionData.transaction || {};
+
+    const nombaCode = rootData.code || transactionData.code;
+    const nombaDescription = rootData.description || transactionData.description;
+    const nombaSuccessFlag = transactionData.success === true || transactionData.success === 'true';
+    const statusCode = transactionDetails.statusCode || transactionDetails.status || '';
+
     console.log('Transaction data structure:', {
-      hasData: !!verificationResult.data,
-      hasNestedData: !!verificationResult.data?.data,
+      hasRootData: !!rootData,
+      hasInnerData: !!transactionData,
       hasOrder: !!orderData,
-      status: orderData?.status || transactionData?.status,
-      paymentStatus: orderData?.paymentStatus || transactionData?.paymentStatus,
+      nombaCode,
+      nombaDescription,
+      successFlag: nombaSuccessFlag,
+      statusFromOrder: orderData?.status || orderData?.paymentStatus,
+      statusFromDetails: statusCode,
       hasMetadata: !!(orderData?.metadata || transactionData?.metadata),
     });
 
     // Check if payment was successful - handle various status formats
-    // Nomba checkout transaction might have status in order.status or order.paymentStatus
+    // 1) Primary signal from Nomba: code === '00' or inner.success === true/'true'
+    // 2) statusCode in transactionDetails often contains "Payment approved" or similar
+    // 3) Fallback to any explicit status fields we already checked before
     const paymentStatus = orderData?.status || 
                          orderData?.paymentStatus || 
                          transactionData?.status || 
                          transactionData?.paymentStatus || 
-                         transactionData?.orderStatus;
+                         transactionData?.orderStatus ||
+                         statusCode;
     
-    const isSuccessful = paymentStatus === 'success' || 
-                         paymentStatus === 'completed' || 
-                         paymentStatus === 'paid' ||
-                         paymentStatus === 'SUCCESS' ||
-                         paymentStatus === 'COMPLETED' ||
-                         orderData?.paid === true ||
-                         transactionData?.paid === true;
+    const isSuccessful =
+      nombaCode === '00' ||
+      nombaSuccessFlag ||
+      /approved|success/i.test(statusCode || '') ||
+      paymentStatus === 'success' ||
+      paymentStatus === 'completed' ||
+      paymentStatus === 'paid' ||
+      paymentStatus === 'SUCCESS' ||
+      paymentStatus === 'COMPLETED' ||
+      orderData?.paid === true ||
+      transactionData?.paid === true;
     
     console.log('Payment status check:', {
       paymentStatus,
+      statusCode,
+      nombaCode,
+      nombaDescription,
+      nombaSuccessFlag,
       isSuccessful,
       orderDataKeys: orderData ? Object.keys(orderData) : [],
       transactionDataKeys: transactionData ? Object.keys(transactionData) : []
