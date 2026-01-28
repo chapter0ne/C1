@@ -8,7 +8,7 @@ import { Star, Heart, BookOpen, Pencil, Eye } from "lucide-react";
 import { useBookState } from "@/hooks/useBookState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/hooks/useWishlist";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import BookCard from "@/components/BookCard";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -20,7 +20,7 @@ import { useUserData } from '@/contexts/OptimizedUserDataContext';
 import { getCoverImageUrl, hasCoverImage } from '@/utils/imageUtils';
 import { useToast } from "@/hooks/use-toast";
 import { useBookPurchaseStatus } from '@/hooks/usePurchaseHistory';
-import { bookReadUrl } from '@/utils/bookUtils';
+import { bookReadUrl, bookDetailUrl, looksLikeObjectId } from '@/utils/bookUtils';
 
 const BookDetails = () => {
   const { id } = useParams();
@@ -48,7 +48,16 @@ const BookDetails = () => {
   
   // Book is considered purchased if it's in library with purchased flag OR if it was ever purchased (even if removed)
   const isPurchased = (isInLibrary && (libraryEntry?.isPurchased || libraryEntry?.purchased || false)) || isBookPurchased;
-  
+
+  // When viewing by database id, replace URL with slug so address bar shows title-based URL
+  useEffect(() => {
+    if (!book?.slug || !id || !looksLikeObjectId(id)) return;
+    const slugUrl = bookDetailUrl(book);
+    if (slugUrl && slugUrl !== `#` && window.location.pathname !== slugUrl) {
+      navigate(slugUrl, { replace: true });
+    }
+  }, [book?.slug, id, navigate, book]);
+
   console.log('BookDetails debug:', { 
     bookId: book?._id, 
     isInLibrary, 

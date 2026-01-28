@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Link, useParams, Navigate } from "react-router-dom";
+import { Link, useParams, useNavigate, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,6 +48,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import { formatText } from "@/utils/textFormatter";
 import ReviewModal from "@/components/ReviewModal";
 import { useUserReview } from "@/hooks/useReviews";
+import { bookReadUrl, looksLikeObjectId } from "@/utils/bookUtils";
 // Theme configurations
 const themes = {
   'Morning Delight': {
@@ -81,6 +82,7 @@ const fonts = [
 
 const EnhancedBookReader = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -89,16 +91,25 @@ const EnhancedBookReader = () => {
   // Add a ref for the settings panel
   const settingsPanelRef = useRef<HTMLDivElement>(null);
 
+  const { data: book, isLoading: bookLoading, error: bookError } = useBookDetails(id || '');
+  const { data: chapters, isLoading: chaptersLoading, error: chaptersError } = useBookChapters(id || '');
+  const { bookState, loading: stateLoading } = useBookState(id || '');
+
+  // When viewing by database id, replace URL with slug so address bar shows title-based URL
+  useEffect(() => {
+    if (!book?.slug || !id || !looksLikeObjectId(id)) return;
+    const slugUrl = bookReadUrl(book);
+    if (slugUrl && slugUrl !== '#' && window.location.pathname !== slugUrl) {
+      navigate(slugUrl, { replace: true });
+    }
+  }, [book?.slug, id, navigate, book]);
+
   // Enable comprehensive content protection
   const { protectElement, obfuscateText, deobfuscateText } = useContentProtection({
     enableGlobalProtection: true,
     protectedElements: ['.reading-content', '.book-content', '.chapter-content'],
     showWatermark: true
   });
-
-  const { data: book, isLoading: bookLoading, error: bookError } = useBookDetails(id || '');
-  const { data: chapters, isLoading: chaptersLoading, error: chaptersError } = useBookChapters(id || '');
-  const { bookState, loading: stateLoading } = useBookState(id || '');
 
   // Reading state
   const [currentChapter, setCurrentChapter] = useState(0);

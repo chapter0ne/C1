@@ -185,6 +185,23 @@ router.get('/search', authMiddleware, async (req, res) => {
   }
 });
 
+// One-time backfill: generate slugs for all books that don't have one (admin only).
+// Run once so existing books get title-based URLs. New books get slug on create via pre-save.
+router.post('/generate-slugs', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const books = await Book.find({ $or: [{ slug: { $exists: false } }, { slug: null }, { slug: '' }] });
+    let updated = 0;
+    for (const book of books) {
+      book.slug = await Book.generateUniqueSlug(book.title);
+      await book.save();
+      updated += 1;
+    }
+    res.json({ message: `Generated slugs for ${updated} book(s).`, updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Failed to generate slugs' });
+  }
+});
+
 // Resolve id or slug to a book document (for :id routes)
 async function findBookByIdOrSlug(idOrSlug) {
   if (!idOrSlug) return null;

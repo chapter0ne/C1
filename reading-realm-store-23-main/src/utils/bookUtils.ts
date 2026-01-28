@@ -18,3 +18,8 @@ export function bookReadUrl(book: { slug?: string; _id?: string; id?: string } |
   const path = getBookPath(book);
   return path ? `/book/${path}/read` : '#';
 }
+
+/** True if the string looks like a MongoDB ObjectId (24 hex chars). */
+export function looksLikeObjectId(id: string): boolean {
+  return /^[a-f0-9]{24}$/i.test(id || '');
+}
