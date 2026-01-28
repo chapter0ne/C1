@@ -1,19 +1,20 @@
 const UserLibrary = require('../models/UserLibrary');
+const { resolveBookId } = require('../utils/resolveBookId');
 
 exports.addToLibrary = async (req, res, next) => {
   try {
-    const { bookId } = req.body;
+    const bookIdResolved = await resolveBookId(req.body.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
     const userId = req.user.userId;
     
-    // Check if already in library
-    const existing = await UserLibrary.findOne({ user: userId, book: bookId });
+    const existing = await UserLibrary.findOne({ user: userId, book: bookIdResolved });
     if (existing) {
       return res.status(400).json({ message: 'Book already in library' });
     }
     
     const libraryEntry = new UserLibrary({
       user: userId,
-      book: bookId
+      book: bookIdResolved
     });
     
     await libraryEntry.save();
@@ -25,10 +26,11 @@ exports.addToLibrary = async (req, res, next) => {
 
 exports.removeFromLibrary = async (req, res, next) => {
   try {
-    const { bookId } = req.params;
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
     const userId = req.user.userId;
     
-    const result = await UserLibrary.findOneAndDelete({ user: userId, book: bookId });
+    const result = await UserLibrary.findOneAndDelete({ user: userId, book: bookIdResolved });
     if (!result) {
       return res.status(404).json({ message: 'Book not found in library' });
     }
@@ -53,12 +55,13 @@ exports.getUserLibrary = async (req, res, next) => {
 
 exports.updateReadingProgress = async (req, res, next) => {
   try {
-    const { bookId } = req.params;
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
     const { readingStatus, currentChapter, progress } = req.body;
     const userId = req.user.userId;
     
     const libraryEntry = await UserLibrary.findOneAndUpdate(
-      { user: userId, book: bookId },
+      { user: userId, book: bookIdResolved },
       { readingStatus, currentChapter, progress },
       { new: true }
     );
@@ -73,11 +76,12 @@ exports.updateReadingProgress = async (req, res, next) => {
   }
 };
 
-// Admin only - get all library entries for a specific book
+// Admin only - get all library entries for a specific book (bookId can be _id or slug)
 exports.getBookLibraryCount = async (req, res, next) => {
   try {
-    const { bookId } = req.params;
-    const count = await UserLibrary.countDocuments({ book: bookId });
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
+    const count = await UserLibrary.countDocuments({ book: bookIdResolved });
     res.json({ count });
   } catch (err) {
     next(err);
@@ -213,20 +217,18 @@ exports.getTopBooksByLibraryCount = async (req, res, next) => {
   }
 };
 
-// Admin only - get detailed stats for a specific book
+// Admin only - get detailed stats for a specific book (bookId can be _id or slug)
 exports.getBookDetailedStats = async (req, res, next) => {
   try {
-    const { bookId } = req.params;
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
+    const bookId = bookIdResolved;
     const Purchase = require('../models/Purchase');
     const Book = require('../models/Book');
     
-    // Get book details
     const book = await Book.findById(bookId);
-    if (!book) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
+    if (!book) return res.status(404).json({ message: 'Book not found' });
     
-    // Get all library entries for this book (all time)
     const allLibraryEntries = await UserLibrary.find({ book: bookId })
       .populate('user', 'username email')
       .sort({ addedAt: -1 });

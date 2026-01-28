@@ -1,4 +1,5 @@
 const Purchase = require('../models/Purchase');
+const { resolveBookId } = require('../utils/resolveBookId');
 
 exports.createPurchase = async (req, res, next) => {
   try {
@@ -28,30 +29,28 @@ exports.getAllPurchases = async (req, res, next) => {
   }
 };
 
-// Admin only - get purchase count for a specific book
+// Admin only - get purchase count for a specific book (bookId can be _id or slug)
 exports.getBookPurchaseCount = async (req, res, next) => {
   try {
-    const { bookId } = req.params;
-    const count = await Purchase.countDocuments({ book: bookId });
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
+    const count = await Purchase.countDocuments({ book: bookIdResolved });
     res.json({ count });
   } catch (err) {
     next(err);
   }
 };
 
-// Check if user has purchased a specific book
+// Check if user has purchased a specific book (bookId in query can be _id or slug)
 exports.checkUserBookPurchase = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { bookId } = req.query;
-    
-    if (!bookId) {
-      return res.status(400).json({ message: 'bookId query parameter is required' });
-    }
+    const bookIdResolved = await resolveBookId(req.query.bookId);
+    if (!bookIdResolved) return res.json({ hasPurchased: false, purchase: null });
 
     const purchase = await Purchase.findOne({ 
       user: userId, 
-      book: bookId 
+      book: bookIdResolved 
     });
 
     res.json({ 

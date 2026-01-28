@@ -1,33 +1,25 @@
 const Wishlist = require('../models/Wishlist');
 const Book = require('../models/Book');
 const User = require('../models/User');
+const { resolveBookId } = require('../utils/resolveBookId');
 
-// Add book to wishlist
+// Add book to wishlist (bookId can be _id or slug)
 exports.addToWishlist = async (req, res) => {
   try {
-    const { bookId } = req.params;
-    const userId = req.user.userId; // Changed from req.user.id to req.user.userId
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
+    const userId = req.user.userId;
     const { notes } = req.body;
 
-    console.log('addToWishlist debug:', { bookId, userId, user: req.user });
+    const book = await Book.findById(bookIdResolved);
+    if (!book) return res.status(404).json({ message: 'Book not found' });
 
-    // Check if book exists
-    const book = await Book.findById(bookId);
-    if (!book) {
-      console.log('Book not found:', bookId);
-      return res.status(404).json({ message: 'Book not found' });
-    }
-
-    // Check if already in wishlist
-    const existingWishlistItem = await Wishlist.findOne({ user: userId, book: bookId });
-    if (existingWishlistItem) {
-      console.log('Book already in wishlist:', { bookId, userId });
-      return res.status(400).json({ message: 'Book is already in your wishlist' });
-    }
+    const existingWishlistItem = await Wishlist.findOne({ user: userId, book: bookIdResolved });
+    if (existingWishlistItem) return res.status(400).json({ message: 'Book is already in your wishlist' });
 
     const wishlistItem = new Wishlist({
       user: userId,
-      book: bookId,
+      book: bookIdResolved,
       notes
     });
 
@@ -42,15 +34,14 @@ exports.addToWishlist = async (req, res) => {
   }
 };
 
-// Remove book from wishlist
+// Remove book from wishlist (bookId can be _id or slug)
 exports.removeFromWishlist = async (req, res) => {
   try {
-    const { bookId } = req.params;
-    const userId = req.user.userId; // Changed from req.user.id to req.user.userId
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
+    const userId = req.user.userId;
 
-    console.log('removeFromWishlist debug:', { bookId, userId, user: req.user });
-
-    const wishlistItem = await Wishlist.findOneAndDelete({ user: userId, book: bookId });
+    const wishlistItem = await Wishlist.findOneAndDelete({ user: userId, book: bookIdResolved });
     
     if (!wishlistItem) {
       console.log('Wishlist item not found:', { bookId, userId });
@@ -101,13 +92,14 @@ exports.getWishlist = async (req, res) => {
   }
 };
 
-// Check if book is in wishlist
+// Check if book is in wishlist (bookId can be _id or slug)
 exports.checkWishlistStatus = async (req, res) => {
   try {
-    const { bookId } = req.params;
-    const userId = req.user.userId; // Changed from req.user.id to req.user.userId
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.json({ isInWishlist: false, wishlistItem: null });
+    const userId = req.user.userId;
 
-    const wishlistItem = await Wishlist.findOne({ user: userId, book: bookId });
+    const wishlistItem = await Wishlist.findOne({ user: userId, book: bookIdResolved });
     
     res.json({
       isInWishlist: !!wishlistItem,
@@ -122,15 +114,16 @@ exports.checkWishlistStatus = async (req, res) => {
   }
 };
 
-// Update wishlist item notes
+// Update wishlist item notes (bookId can be _id or slug)
 exports.updateWishlistNotes = async (req, res) => {
   try {
-    const { bookId } = req.params;
-    const userId = req.user.userId; // Changed from req.user.id to req.user.userId
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
+    const userId = req.user.userId;
     const { notes } = req.body;
 
     const wishlistItem = await Wishlist.findOneAndUpdate(
-      { user: userId, book: bookId },
+      { user: userId, book: bookIdResolved },
       { notes },
       { new: true }
     ).populate('book', 'title author coverImageUrl price isFree');

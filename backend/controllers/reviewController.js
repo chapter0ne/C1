@@ -1,13 +1,14 @@
-const mongoose = require('mongoose');
 const Review = require('../models/Review');
+const { resolveBookId } = require('../utils/resolveBookId');
 
 exports.createReview = async (req, res, next) => {
   try {
-    const { book, rating, reviewText } = req.body;
+    const bookIdResolved = await resolveBookId(req.body.book);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
     const userId = req.user.userId;
+    const { rating, reviewText } = req.body;
 
-    // Check if user already has a review for this book
-    const existingReview = await Review.findOne({ user: userId, book });
+    const existingReview = await Review.findOne({ user: userId, book: bookIdResolved });
     if (existingReview) {
       return res.status(400).json({ 
         message: 'You have already reviewed this book. Only one review per book is allowed.' 
@@ -22,15 +23,14 @@ exports.createReview = async (req, res, next) => {
     }
 
     const review = new Review({ 
-      book, 
+      book: bookIdResolved, 
       rating, 
       reviewText: reviewText || '', 
       user: userId 
     });
     await review.save();
     
-    // Update book rating after saving review
-    await Review.updateBookRating(book);
+    await Review.updateBookRating(bookIdResolved);
     
     res.status(201).json(review);
   } catch (err) {
@@ -46,10 +46,10 @@ exports.createReview = async (req, res, next) => {
 
 exports.getUserReview = async (req, res, next) => {
   try {
-    const { bookId } = req.params;
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.json(null);
     const userId = req.user.userId;
-    
-    const review = await Review.findOne({ user: userId, book: bookId });
+    const review = await Review.findOne({ user: userId, book: bookIdResolved });
     res.json(review || null);
   } catch (err) {
     next(err);
@@ -58,12 +58,9 @@ exports.getUserReview = async (req, res, next) => {
 
 exports.getReviewsByBook = async (req, res, next) => {
   try {
-    const bookId = req.params.bookId;
-    if (!bookId) {
-      return res.json([]);
-    }
-    const objectId = mongoose.Types.ObjectId.isValid(bookId) ? new mongoose.Types.ObjectId(bookId) : bookId;
-    const reviews = await Review.find({ book: objectId }).populate('user', 'username').sort({ createdAt: -1 });
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.json([]);
+    const reviews = await Review.find({ book: bookIdResolved }).populate('user', 'username').sort({ createdAt: -1 });
     res.json(reviews || []);
   } catch (err) {
     next(err);

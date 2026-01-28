@@ -1,17 +1,18 @@
 const express = require('express');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const chapterController = require('../controllers/chapterController');
+const { resolveBookId } = require('../utils/resolveBookId');
 const router = express.Router();
 
 router.post('/', authMiddleware, adminOnly, chapterController.createChapter);
 router.get('/book/:bookId', chapterController.getChaptersByBook);
 router.get('/', async (req, res, next) => {
   const { bookId } = req.query;
-  if (!bookId) {
-    return res.status(400).json({ message: 'bookId is required' });
-  }
+  if (!bookId) return res.status(400).json({ message: 'bookId is required' });
   try {
-    const chapters = await require('../models/Chapter').find({ book: bookId }).sort('chapterOrder');
+    const bookIdResolved = await resolveBookId(bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
+    const chapters = await require('../models/Chapter').find({ book: bookIdResolved }).sort('chapterOrder');
     res.json(chapters);
   } catch (err) {
     next(err);

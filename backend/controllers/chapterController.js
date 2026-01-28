@@ -1,4 +1,5 @@
 const Chapter = require('../models/Chapter');
+const { resolveBookId } = require('../utils/resolveBookId');
 
 exports.createChapter = async (req, res, next) => {
   try {
@@ -17,7 +18,9 @@ exports.createChapter = async (req, res, next) => {
 
 exports.getChaptersByBook = async (req, res, next) => {
   try {
-    const chapters = await Chapter.find({ book: req.params.bookId }).sort('order'); // Sort by order field
+    const bookIdResolved = await resolveBookId(req.params.bookId);
+    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
+    const chapters = await Chapter.find({ book: bookIdResolved }).sort('order');
     res.json(chapters);
   } catch (err) {
     next(err);
