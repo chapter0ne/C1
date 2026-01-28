@@ -15,40 +15,54 @@ router.get('/', (req, res) => {
 
 /**
  * Verify Nomba webhook signature per https://developer.nomba.com/docs/api-basics/webhook
- * Headers: nomba-signature, nomba-timestamp. Hashing payload:
- * event_type:requestId:userId:walletId:transactionId:type:time:responseCode:timestamp
+ * Headers: nomba-signature (or nomba-sig-value), nomba-timestamp (RFC-3339).
+ * Signed string: event_type:requestId:userId:walletId:transactionId:type:time:responseCode:timestamp
+ * The "Signature Key" in the Nomba dashboard must exactly equal NOMBA_WEBHOOK_SECRET.
  */
 function verifyNombaWebhookSignature(req) {
+  const skipVerify = process.env.NOMBA_WEBHOOK_VERIFY === 'false';
+  if (skipVerify) {
+    console.warn('Nomba webhook signature verification is DISABLED (NOMBA_WEBHOOK_VERIFY=false). Do not use in production.');
+    return { verified: true };
+  }
+
   const secret = process.env.NOMBA_WEBHOOK_SECRET;
   if (!secret) return { verified: true }; // skip when not configured
 
   const signature = (req.headers['nomba-signature'] || req.headers['nomba-sig-value'] || '').trim();
   const timestamp = (req.headers['nomba-timestamp'] || '').trim();
-  if (!signature) return { verified: false, reason: 'missing nomba-signature header' };
+  if (!signature) {
+    console.warn('Nomba webhook: missing nomba-signature header. Incoming headers (lowercase):', Object.keys(req.headers || {}).filter(h => h.includes('nomba')));
+    return { verified: false, reason: 'missing nomba-signature header' };
+  }
+  if (!timestamp) {
+    console.warn('Nomba webhook: missing nomba-timestamp header.');
+    return { verified: false, reason: 'missing nomba-timestamp header' };
+  }
 
   const body = req.body || {};
-  const eventType = body.event_type ?? body.event ?? '';
-  const requestId = body.requestId ?? body.request_id ?? '';
+  const eventType = (body.event_type ?? body.event ?? '').toString();
+  const requestId = (body.requestId ?? body.request_id ?? '').toString();
   const data = body.data || {};
   const merchant = data.merchant || {};
   const transaction = data.transaction || {};
-  const userId = merchant.userId ?? merchant.user_id ?? '';
-  const walletId = merchant.walletId ?? merchant.wallet_id ?? '';
-  const transactionId = transaction.transactionId ?? transaction.transaction_id ?? '';
-  const type = transaction.type ?? '';
-  const time = transaction.time ?? '';
-  let responseCode = transaction.responseCode ?? transaction.response_code ?? '';
+  const userId = (merchant.userId ?? merchant.user_id ?? '').toString();
+  const walletId = (merchant.walletId ?? merchant.wallet_id ?? '').toString();
+  const transactionId = (transaction.transactionId ?? transaction.transaction_id ?? '').toString();
+  const type = (transaction.type ?? '').toString();
+  const time = (transaction.time ?? '').toString();
+  let responseCode = (transaction.responseCode ?? transaction.response_code ?? '').toString();
   if (responseCode === 'null') responseCode = '';
 
   const hashingPayload = `${eventType}:${requestId}:${userId}:${walletId}:${transactionId}:${type}:${time}:${responseCode}:${timestamp}`;
   const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(hashingPayload);
+  hmac.update(hashingPayload, 'utf8');
   const computed = hmac.digest('base64');
 
-  // Both signature and computed are base64 strings; compare constant-time
   const sigBuf = Buffer.from(signature, 'utf8');
   const compBuf = Buffer.from(computed, 'utf8');
   if (sigBuf.length !== compBuf.length || !crypto.timingSafeEqual(sigBuf, compBuf)) {
+    console.warn('Nomba webhook signature mismatch. event_type=%s requestId=%s hasTimestamp=%s. Ensure Nomba dashboard "Signature Key" exactly matches NOMBA_WEBHOOK_SECRET.', eventType || '(empty)', requestId ? 'yes' : 'no', !!timestamp);
     return { verified: false, reason: 'signature mismatch' };
   }
   return { verified: true };
@@ -61,7 +75,11 @@ const nombaPostHandler = async (req, res) => {
     const verify = verifyNombaWebhookSignature(req);
     if (!verify.verified) {
       console.warn('Nomba webhook signature verification failed:', verify.reason);
-      return res.status(401).json({ status: 'error', message: 'Invalid webhook signature' });
+      return res.status(401).json({
+        status: 'error',
+        message: 'Invalid webhook signature',
+        hint: 'Set the Nomba dashboard "Signature Key" to the exact value of NOMBA_WEBHOOK_SECRET (no spaces). Or set NOMBA_WEBHOOK_VERIFY=false only to test.',
+      });
     }
 
     const { event, data } = req.body;
