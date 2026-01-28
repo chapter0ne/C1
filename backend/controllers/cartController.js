@@ -4,7 +4,7 @@ const User = require('../models/User');
 const Purchase = require('../models/Purchase');
 const UserLibrary = require('../models/UserLibrary');
 
-// Get user's cart
+// Get user's cart (exclude items the user already owns so purchased books never show in cart)
 exports.getCart = async (req, res) => {
   try {
     const userId = req.user.userId; // Changed from req.user.id to req.user.userId
@@ -15,6 +15,20 @@ exports.getCart = async (req, res) => {
     if (!cart) {
       cart = new Cart({ user: userId, items: [] });
       await cart.save();
+    }
+
+    // Remove any items where the user already owns the book (in library)
+    const ownedBookIds = await UserLibrary.find({ user: userId }).distinct('book');
+    const ownedSet = new Set(ownedBookIds.map((id) => id.toString()));
+    if (ownedSet.size > 0 && cart.items && cart.items.length > 0) {
+      const originalLength = cart.items.length;
+      cart.items = cart.items.filter((item) => {
+        const bookId = item.book && (item.book._id ? item.book._id.toString() : item.book.toString());
+        return !ownedSet.has(bookId);
+      });
+      if (cart.items.length < originalLength) {
+        await cart.save();
+      }
     }
 
     res.json(cart);

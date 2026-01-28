@@ -61,11 +61,18 @@ function verifyNombaWebhookSignature(req) {
 
   const sigBuf = Buffer.from(signature, 'utf8');
   const compBuf = Buffer.from(computed, 'utf8');
-  if (sigBuf.length !== compBuf.length || !crypto.timingSafeEqual(sigBuf, compBuf)) {
-    console.warn('Nomba webhook signature mismatch. event_type=%s requestId=%s hasTimestamp=%s. Ensure Nomba dashboard "Signature Key" exactly matches NOMBA_WEBHOOK_SECRET.', eventType || '(empty)', requestId ? 'yes' : 'no', !!timestamp);
+  const strictMatch = sigBuf.length === compBuf.length && crypto.timingSafeEqual(sigBuf, compBuf);
+  const caseInsensitiveMatch = !strictMatch && signature.toLowerCase() === computed.toLowerCase();
+  if (strictMatch || caseInsensitiveMatch) return { verified: true };
+  {
+    // Debug: log payload shape (no PII) so we can fix formula if Nomba sends different structure
+    const bodyKeys = Object.keys(body);
+    const dataKeys = data ? Object.keys(data) : [];
+    const hasMerchant = !!(data && data.merchant);
+    const hasTransaction = !!(data && data.transaction);
+    console.warn('Nomba webhook signature mismatch. Payload shape: bodyKeys=%s dataKeys=%s hasMerchant=%s hasTransaction=%s. Hashing payload length=%d. Ensure Nomba dashboard "Signature Key" exactly equals NOMBA_WEBHOOK_SECRET.', bodyKeys.join(','), dataKeys.join(','), hasMerchant, hasTransaction, hashingPayload.length);
     return { verified: false, reason: 'signature mismatch' };
   }
-  return { verified: true };
 }
 
 // Nomba webhook handler - handles POST webhooks from Nomba
@@ -128,7 +135,7 @@ const nombaPostHandler = async (req, res) => {
           amount: typeof amount === 'number' ? amount : parseFloat(amount), // Nomba sends NGN, not kobo
           customerEmail,
           status,
-          metadata,
+          metadata: { ...(purchase.nombaData?.metadata || {}), ...(metadata || {}) }, // Keep our bookIds from checkout
           transactionReference: paymentRef,
           webhookData: data, // Store full webhook data for debugging
         };
@@ -173,7 +180,7 @@ const nombaPostHandler = async (req, res) => {
           }
         } else {
           // Fallback: try to get bookIds from purchase metadata stored during checkout
-          const checkoutMetadata = purchase.nombaData?.fullResponse?.metadata || purchase.nombaData?.fullResponse?.data?.metadata;
+          const checkoutMetadata = purchase.nombaData?.metadata || purchase.nombaData?.fullResponse?.metadata || purchase.nombaData?.fullResponse?.data?.metadata;
           if (checkoutMetadata && checkoutMetadata.bookIds) {
             const bookIds = Array.isArray(checkoutMetadata.bookIds) 
               ? checkoutMetadata.bookIds 
@@ -196,6 +203,13 @@ const nombaPostHandler = async (req, res) => {
               }
             }
           }
+        }
+        // Remove purchased books from cart (we store bookIds in purchase.nombaData.metadata at checkout)
+        const meta = purchase.nombaData?.metadata || purchase.nombaData?.fullResponse?.metadata || purchase.nombaData?.fullResponse?.data?.metadata;
+        if (meta && meta.bookIds) {
+          const ids = Array.isArray(meta.bookIds) ? meta.bookIds : [meta.bookIds];
+          const { removeBooksFromUserCart } = require('../utils/cartHelpers');
+          await removeBooksFromUserCart(purchase.user.toString(), ids);
         }
       } else {
         console.log('Purchase not found for reference:', paymentRef || orderReference);
@@ -338,7 +352,8 @@ router.get(['/nomba', '/nomba/'], async (req, res) => {
         
         // Add books to library
         const UserLibrary = require('../models/UserLibrary');
-        const checkoutMetadata = purchase.nombaData?.fullResponse?.metadata || 
+        const checkoutMetadata = purchase.nombaData?.metadata ||
+                                purchase.nombaData?.fullResponse?.metadata ||
                                 purchase.nombaData?.fullResponse?.data?.metadata;
         
         if (checkoutMetadata && checkoutMetadata.bookIds) {
@@ -363,6 +378,8 @@ router.get(['/nomba', '/nomba/'], async (req, res) => {
               console.log('Book added to user library from redirect:', bookId);
             }
           }
+          const { removeBooksFromUserCart } = require('../utils/cartHelpers');
+          await removeBooksFromUserCart(purchase.user.toString(), bookIds);
         }
       }
       

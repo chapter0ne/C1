@@ -185,16 +185,30 @@ router.get('/search', authMiddleware, async (req, res) => {
   }
 });
 
-// Get book by ID (public if published, admin can get any). Includes libraryCount (reads) for display.
+// Resolve id or slug to a book document (for :id routes)
+async function findBookByIdOrSlug(idOrSlug) {
+  if (!idOrSlug) return null;
+  if (mongoose.Types.ObjectId.isValid(idOrSlug) && String(new mongoose.Types.ObjectId(idOrSlug)) === idOrSlug) {
+    const byId = await Book.findById(idOrSlug);
+    if (byId) return byId;
+  }
+  return Book.findOne({ slug: idOrSlug });
+}
+
+// Get book by ID or slug (public if published, admin can get any). Includes libraryCount (reads) for display.
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const book = await Book.findById(req.params.id);
+    let book = await findBookByIdOrSlug(req.params.id);
     if (!book) return res.status(404).json({ message: 'Book not found' });
     if (book.status !== 'published' && !req.user.roles.includes('admin')) {
       return res.status(403).json({ message: 'Not authorized' });
     }
+    if (!book.slug) {
+      book.slug = await Book.generateUniqueSlug(book.title);
+      await book.save();
+    }
     const UserLibrary = require('../models/UserLibrary');
-    const libraryCount = await UserLibrary.countDocuments({ book: req.params.id });
+    const libraryCount = await UserLibrary.countDocuments({ book: book._id });
     const out = book.toObject ? book.toObject() : { ...book };
     out.libraryCount = libraryCount;
     res.json(out);
@@ -206,8 +220,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Get chapters for a book
 router.get('/:id/chapters', async (req, res) => {
   try {
+    const book = await findBookByIdOrSlug(req.params.id);
+    if (!book) return res.status(404).json({ message: 'Book not found' });
     const Chapter = require('../models/Chapter');
-    const chapters = await Chapter.find({ book: req.params.id }).sort('chapterOrder');
+    const chapters = await Chapter.find({ book: book._id }).sort('chapterOrder');
     res.json(chapters);
   } catch (err) {
     console.error('Error fetching chapters:', err);
@@ -215,35 +231,22 @@ router.get('/:id/chapters', async (req, res) => {
   }
 });
 
-// Update book (admin only)
+// Update book (admin only); id can be _id or slug
 router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
-    console.log('Backend: Book update request received for ID:', req.params.id);
-    console.log('Backend: Update data received:', req.body);
-    
+    const existing = await findBookByIdOrSlug(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Book not found' });
     const updateData = { ...req.body };
-    // If isFree is set, ensure price is 0
     if (typeof updateData.isFree !== 'undefined') {
       updateData.isFree = !!updateData.isFree;
-      if (updateData.isFree) {
-        updateData.price = 0;
-      }
+      if (updateData.isFree) updateData.price = 0;
     }
-    // If price is set, ensure isFree is false if price > 0
     if (typeof updateData.price !== 'undefined' && Number(updateData.price) > 0) {
       updateData.isFree = false;
       updateData.price = Number(updateData.price);
     }
-    
-    console.log('Backend: Processed update data:', updateData);
-    
-    const book = await Book.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    if (!book) {
-      console.log('Backend: Book not found with ID:', req.params.id);
-      return res.status(404).json({ message: 'Book not found' });
-    }
-    
-    console.log('Backend: Book updated successfully:', book);
+    const book = await Book.findByIdAndUpdate(existing._id, updateData, { new: true });
+    if (!book) return res.status(404).json({ message: 'Book not found' });
     res.json(book);
   } catch (err) {
     console.error('Backend: Error updating book:', err);
@@ -251,59 +254,19 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
-// Delete book (admin only)
+// Delete book (admin only); id can be _id or slug
 router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
-    console.log('Delete book request started:', { 
-      bookId: req.params.id, 
-      userId: req.user.userId,
-      userRoles: req.user.roles,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      console.log('Invalid ObjectId format:', req.params.id);
-      return res.status(400).json({ message: 'Invalid book ID format' });
-    }
-    
-    // Check if book exists before deletion
-    const existingBook = await Book.findById(req.params.id);
-    if (!existingBook) {
-      console.log('Book not found for deletion:', req.params.id);
-      return res.status(404).json({ message: 'Book not found' });
-    }
-    
-    console.log('Book found, proceeding with deletion:', {
-      bookId: existingBook._id,
-      title: existingBook.title,
-      status: existingBook.status
-    });
-    
-    // Delete the book
-    const deleteResult = await Book.findByIdAndDelete(req.params.id);
-    console.log('Book deletion completed:', {
-      bookId: req.params.id,
-      deleteResult: deleteResult ? 'success' : 'failed',
-      timestamp: new Date().toISOString()
-    });
-    
-    if (!deleteResult) {
-      console.log('Book deletion failed - no result returned');
-      return res.status(500).json({ message: 'Failed to delete book' });
-    }
-    
-    // Also delete associated chapters if they exist
+    const existingBook = await findBookByIdOrSlug(req.params.id);
+    if (!existingBook) return res.status(404).json({ message: 'Book not found' });
+    const bookId = existingBook._id;
+    const deleteResult = await Book.findByIdAndDelete(bookId);
+    if (!deleteResult) return res.status(500).json({ message: 'Failed to delete book' });
     try {
       const Chapter = require('../models/Chapter');
-      const chapterDeleteResult = await Chapter.deleteMany({ book: req.params.id });
-      console.log('Associated chapters deleted:', {
-        bookId: req.params.id,
-        chaptersDeleted: chapterDeleteResult.deletedCount
-      });
+      await Chapter.deleteMany({ book: bookId });
     } catch (chapterError) {
       console.warn('Warning: Could not delete associated chapters:', chapterError.message);
-      // Don't fail the main deletion if chapter deletion fails
     }
     
     console.log('Book deletion process completed successfully');

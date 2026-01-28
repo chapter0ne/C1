@@ -12,6 +12,7 @@ import { useBooks } from '@/hooks/useBooks';
 import { useBestsellers, useEditorPicks } from '@/hooks/useFeaturedBooks';
 import { useUserData } from '@/contexts/OptimizedUserDataContext';
 import { getCoverImageUrl, hasCoverImage } from '@/utils/imageUtils';
+import { bookDetailUrl } from '@/utils/bookUtils';
 
 // Skeleton loader for book carousels
 const BookCarouselSkeleton = () => (
@@ -132,7 +133,7 @@ const NetflixStyleHero = ({ books }: { books: any[] }) => {
     <section 
       className="relative w-full lg:hidden overflow-hidden cursor-pointer bg-black"
       style={{ height: '50vh' }}
-      onClick={() => navigate(`/book/${currentBook._id}`)}
+      onClick={() => navigate(bookDetailUrl(currentBook))}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

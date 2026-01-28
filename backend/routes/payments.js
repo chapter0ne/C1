@@ -100,6 +100,7 @@ router.post('/checkout', authMiddleware, async (req, res) => {
       checkoutLink: checkoutLink,
       orderReference: responseData.orderReference || orderReference,
       fullResponse: checkoutResult.fullResponse, // Store full response for debugging
+      metadata: { bookIds }, // Store so redirect/webhook can add books even if Nomba does not echo metadata
     };
     await purchase.save();
 
@@ -157,10 +158,10 @@ router.get('/verify/:reference', authMiddleware, async (req, res) => {
     if (purchase.status === 'completed') {
       console.log('Purchase already completed (likely from webhook), returning success');
       
-      // Ensure books are in library (webhook should have done this, but double-check)
-      const checkoutMetadata = purchase.nombaData?.fullResponse?.metadata || 
-                              purchase.nombaData?.fullResponse?.data?.metadata ||
-                              purchase.nombaData?.metadata;
+      // Ensure books are in library (webhook/redirect may have done this, but double-check)
+      const checkoutMetadata = purchase.nombaData?.metadata ||
+                              purchase.nombaData?.fullResponse?.metadata ||
+                              purchase.nombaData?.fullResponse?.data?.metadata;
       
       if (checkoutMetadata && checkoutMetadata.bookIds) {
         const bookIds = Array.isArray(checkoutMetadata.bookIds) 
@@ -184,6 +185,8 @@ router.get('/verify/:reference', authMiddleware, async (req, res) => {
             console.log('Book added to user library (verification check):', bookId);
           }
         }
+        const { removeBooksFromUserCart } = require('../utils/cartHelpers');
+        await removeBooksFromUserCart(purchase.user.toString(), bookIds);
       }
       
       return res.json({
@@ -233,32 +236,47 @@ router.get('/verify/:reference', authMiddleware, async (req, res) => {
 
     if (!verificationResult.success) {
       console.log('Nomba verification failed:', verificationResult.error);
-      
+
+      // Re-fetch purchase: redirect or webhook may have completed it after we first loaded
+      const freshPurchase = await Purchase.findById(purchase._id);
+      if (freshPurchase && freshPurchase.status === 'completed') {
+        console.log('Purchase was completed by redirect/webhook; returning success');
+        const meta = freshPurchase.nombaData?.metadata || freshPurchase.nombaData?.fullResponse?.metadata;
+        if (meta && meta.bookIds) {
+          const ids = Array.isArray(meta.bookIds) ? meta.bookIds : [meta.bookIds];
+          const { removeBooksFromUserCart } = require('../utils/cartHelpers');
+          await removeBooksFromUserCart(freshPurchase.user.toString(), ids);
+        }
+        return res.json({
+          success: true,
+          status: 'completed',
+          message: 'Payment already verified',
+          purchase: freshPurchase,
+        });
+      }
+
       // If verification fails with 404, it might mean:
       // 1. Payment was cancelled (transaction doesn't exist in Nomba)
       // 2. Webhook hasn't arrived yet but payment is processing
       // 3. Nomba uses a different reference format
-      
-      // Don't immediately mark as cancelled - wait a bit for webhook
-      // Only mark as cancelled if it's been a while (e.g., > 5 minutes)
-      const purchaseAge = Date.now() - new Date(purchase.createdAt).getTime();
+      const purchaseToUpdate = freshPurchase || purchase;
+      const purchaseAge = Date.now() - new Date(purchaseToUpdate.createdAt).getTime();
       const fiveMinutes = 5 * 60 * 1000;
-      
-      if (purchase.status === 'pending' && purchaseAge > fiveMinutes) {
-        // Only mark as cancelled if purchase is old and still pending
-        purchase.status = 'cancelled';
-        await purchase.save();
+
+      if (purchaseToUpdate.status === 'pending' && purchaseAge > fiveMinutes) {
+        purchaseToUpdate.status = 'cancelled';
+        await purchaseToUpdate.save();
         console.log('Purchase status updated to cancelled (old pending purchase)');
-      } else if (purchase.status === 'pending') {
+      } else if (purchaseToUpdate.status === 'pending') {
         console.log('Purchase still pending, webhook may arrive soon. Age:', purchaseAge, 'ms');
       }
-      
-      return res.status(400).json({ 
+
+      return res.status(400).json({
         success: false,
         message: 'Transaction verification failed. If payment was successful, please wait a moment and refresh.',
         error: verificationResult.error,
-        purchaseStatus: purchase.status,
-        note: purchase.status === 'pending' ? 'Payment may still be processing. Webhook will update status automatically.' : undefined
+        purchaseStatus: purchaseToUpdate.status,
+        note: purchaseToUpdate.status === 'pending' ? 'Payment may still be processing. Webhook will update status automatically.' : undefined
       });
     }
 
@@ -362,6 +380,8 @@ router.get('/verify/:reference', authMiddleware, async (req, res) => {
           console.log('Book already in library:', bookId);
         }
       }
+      const { removeBooksFromUserCart } = require('../utils/cartHelpers');
+      await removeBooksFromUserCart(purchase.user.toString(), bookIds);
     } else {
       console.log('Payment not successful, status:', paymentStatus);
       // If status is not successful but we got a response, update purchase with the status

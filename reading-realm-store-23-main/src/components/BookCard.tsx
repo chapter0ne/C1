@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getCoverImageUrl, hasCoverImage } from "@/utils/imageUtils";
 import { useToast } from "@/hooks/use-toast";
+import { bookDetailUrl, bookReadUrl } from "@/utils/bookUtils";
 import React from "react";
 
 interface BookCardProps {
@@ -112,7 +113,7 @@ const BookCard = ({
     e.preventDefault();
     e.stopPropagation();
     if (isInLibrary) {
-      window.location.href = `/book/${book._id}/read`;
+      window.location.href = bookReadUrl(book);
       return;
     }
     if (book.isFree) {
@@ -200,9 +201,9 @@ const BookCard = ({
             style={{ filter: `drop-shadow(4px 4px 8px ${shadowColor}40)` }}
             onClick={() => {
               if (isInLibrary) {
-                window.location.href = `/book/${book._id}/read`;
+                window.location.href = bookReadUrl(book);
               } else {
-                window.location.href = `/book/${book._id}`;
+                window.location.href = bookDetailUrl(book);
               }
             }}
           >
@@ -285,7 +286,7 @@ const BookCard = ({
               className={`font-semibold text-gray-900 leading-tight line-clamp-2 cursor-pointer hover:text-[#D01E1E] transition-colors px-1 ${
                 variant === 'compact' ? 'text-xs' : 'text-sm'
               }`}
-              onClick={() => window.location.href = `/book/${book._id}`}
+              onClick={() => window.location.href = bookDetailUrl(book)}
             >
               {book.title}
             </h3>
@@ -295,7 +296,7 @@ const BookCard = ({
             className={`text-gray-600 truncate cursor-pointer hover:text-[#D01E1E] transition-colors px-1 ${
               variant === 'compact' ? 'text-xs' : 'text-sm'
             }`}
-            onClick={() => window.location.href = `/book/${book._id}`}
+            onClick={() => window.location.href = bookDetailUrl(book)}
           >
             by {book.author}
           </p>

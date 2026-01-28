@@ -20,6 +20,7 @@ import { useUserData } from '@/contexts/OptimizedUserDataContext';
 import { getCoverImageUrl, hasCoverImage } from '@/utils/imageUtils';
 import { useToast } from "@/hooks/use-toast";
 import { useBookPurchaseStatus } from '@/hooks/usePurchaseHistory';
+import { bookReadUrl } from '@/utils/bookUtils';
 
 const BookDetails = () => {
   const { id } = useParams();
@@ -305,7 +306,7 @@ const BookDetails = () => {
                           ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
                           : ''
                     }`}
-                    onClick={isInLibrary || isPurchased ? () => navigate(`/book/${book._id}/read`) : handleWishlistAction}
+                    onClick={isInLibrary || isPurchased ? () => navigate(bookReadUrl(book)) : handleWishlistAction}
                   >
                     {isInLibrary || isPurchased ? (
                       <>

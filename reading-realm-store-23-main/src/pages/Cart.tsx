@@ -12,6 +12,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import BookCard from "@/components/BookCard";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { bookDetailUrl } from "@/utils/bookUtils";
 
 const Cart = () => {
   const { user } = useAuth();
@@ -238,7 +239,7 @@ const Cart = () => {
                               <div className="flex gap-4">
                                 {/* Book Cover - Clickable */}
                                 <Link 
-                                  to={`/book/${book._id || book.id}`}
+                                  to={bookDetailUrl(book)}
                                   className="w-16 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded flex items-center justify-center text-white text-xs font-bold flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                                 >
                                   {book.coverImageUrl ? (
@@ -255,7 +256,7 @@ const Cart = () => {
                                 {/* Book Details */}
                                 <div className="flex-1 min-w-0">
                                   <Link 
-                                    to={`/book/${book._id || book.id}`}
+                                    to={bookDetailUrl(book)}
                                     className="block cursor-pointer hover:text-[#D01E1E] transition-colors"
                                   >
                                     <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
