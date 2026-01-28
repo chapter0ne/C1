@@ -3,7 +3,6 @@ const Book = require('../models/Book');
 const User = require('../models/User');
 const Purchase = require('../models/Purchase');
 const UserLibrary = require('../models/UserLibrary');
-const { resolveBookId } = require('../utils/resolveBookId');
 
 // Get user's cart (exclude items the user already owns so purchased books never show in cart)
 exports.getCart = async (req, res) => {
@@ -38,17 +37,18 @@ exports.getCart = async (req, res) => {
   }
 };
 
-// Add book to cart (bookId can be _id or slug)
+// Add book to cart
 exports.addToCart = async (req, res) => {
   try {
-    const bookIdResolved = await resolveBookId(req.params.bookId);
-    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
-    const bookId = bookIdResolved.toString();
-    const userId = req.user.userId;
+    const { bookId } = req.params;
+    const userId = req.user.userId; // Changed from req.user.id to req.user.userId
     const { quantity = 1 } = req.body;
 
+    // Check if book exists
     const book = await Book.findById(bookId);
-    if (!book) return res.status(404).json({ message: 'Book not found' });
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
 
     // Free books cannot be added to cart
     if (book.isFree) {
@@ -58,7 +58,7 @@ exports.addToCart = async (req, res) => {
     // Check if book is already purchased by user
     const existingPurchase = await Purchase.findOne({ 
       user: userId, 
-      book: bookIdResolved 
+      book: bookId 
     });
     
     if (existingPurchase) {
@@ -69,8 +69,11 @@ exports.addToCart = async (req, res) => {
     }
 
     let cart = await Cart.findOne({ user: userId });
-    if (!cart) cart = new Cart({ user: userId, items: [] });
+    if (!cart) {
+      cart = new Cart({ user: userId, items: [] });
+    }
 
+    // Check if book is already in cart
     const existingItem = cart.items.find(item => item.book.toString() === bookId);
     if (existingItem) {
       return res.status(400).json({ 
@@ -78,7 +81,10 @@ exports.addToCart = async (req, res) => {
         cart 
       });
     } else {
-      cart.items.push({ book: bookIdResolved, quantity: 1 });
+      cart.items.push({
+        book: bookId,
+        quantity: 1 // Always set quantity to 1, no matter what user sends
+      });
     }
 
     await cart.save();
@@ -90,18 +96,18 @@ exports.addToCart = async (req, res) => {
   }
 };
 
-// Remove book from cart (bookId can be _id or slug)
+// Remove book from cart
 exports.removeFromCart = async (req, res) => {
   try {
-    const bookIdResolved = await resolveBookId(req.params.bookId);
-    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
-    const bookIdStr = bookIdResolved.toString();
-    const userId = req.user.userId;
+    const { bookId } = req.params;
+    const userId = req.user.userId; // Changed from req.user.id to req.user.userId
 
     const cart = await Cart.findOne({ user: userId });
-    if (!cart) return res.status(404).json({ message: 'Cart not found' });
+    if (!cart) {
+      return res.status(404).json({ message: 'Cart not found' });
+    }
 
-    cart.items = cart.items.filter(item => item.book.toString() !== bookIdStr);
+    cart.items = cart.items.filter(item => item.book.toString() !== bookId);
     await cart.save();
     await cart.populate('items.book', 'title author coverImageUrl price isFree description');
 
@@ -111,21 +117,23 @@ exports.removeFromCart = async (req, res) => {
   }
 };
 
-// Update cart item quantity (bookId can be _id or slug)
+// Update cart item quantity
 exports.updateCartItemQuantity = async (req, res) => {
   try {
-    const bookIdResolved = await resolveBookId(req.params.bookId);
-    if (!bookIdResolved) return res.status(404).json({ message: 'Book not found' });
-    const bookIdStr = bookIdResolved.toString();
-    const userId = req.user.userId;
+    const { bookId } = req.params;
+    const userId = req.user.userId; // Changed from req.user.id to req.user.userId
     const { quantity } = req.body;
 
-    if (quantity < 1) return res.status(400).json({ message: 'Quantity must be at least 1' });
+    if (quantity < 1) {
+      return res.status(400).json({ message: 'Quantity must be at least 1' });
+    }
 
     const cart = await Cart.findOne({ user: userId });
-    if (!cart) return res.status(404).json({ message: 'Cart not found' });
+    if (!cart) {
+      return res.status(404).json({ message: 'Cart not found' });
+    }
 
-    const item = cart.items.find(item => item.book.toString() === bookIdStr);
+    const item = cart.items.find(item => item.book.toString() === bookId);
     if (!item) {
       return res.status(404).json({ message: 'Item not found in cart' });
     }

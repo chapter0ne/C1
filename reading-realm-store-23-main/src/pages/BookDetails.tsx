@@ -42,12 +42,14 @@ const BookDetails = () => {
   // Check if book is paid (not free)
   const isPaidBook = !(book?.isFree === true || book?.is_free === true || book?.price === 0 || book?.price === '0' || book?.price === undefined || book?.price === null);
   
-  // Check purchase history to see if book was ever purchased (non-blocking)
+  // Check purchase history to see if book was ever purchased (non-blocking, informational)
   const { data: purchaseStatus } = useBookPurchaseStatus(user?.id || '', book?._id || '');
   const isBookPurchased = purchaseStatus?.isBookPurchased || false;
   
-  // Book is considered purchased if it's in library with purchased flag OR if it was ever purchased (even if removed)
-  const isPurchased = (isInLibrary && (libraryEntry?.isPurchased || libraryEntry?.purchased || false)) || isBookPurchased;
+  // For access/CTA: treat a paid book as "purchased" only when it's actually in the library.
+  // This ensures we never mark a paid book as purchased or disable the buy button unless
+  // there is a corresponding library entry created after a successful payment.
+  const isPurchased = isInLibrary && isPaidBook;
 
   // When viewing by database id, replace URL with slug so address bar shows title-based URL
   useEffect(() => {
@@ -287,20 +289,15 @@ const BookDetails = () => {
                 ) : (
                   <Button 
                     className={`w-full text-lg font-semibold mb-3 rounded-lg ${
-                      isInLibrary || isPurchased
+                      isInLibrary
                         ? 'bg-green-600 hover:bg-green-700 cursor-not-allowed' 
                         : 'bg-[#D01E1E] hover:bg-[#B01818]'
                     }`}
                     size="lg"
-                    onClick={isInLibrary || isPurchased ? undefined : handleBuyClick}
-                    disabled={isInLibrary || isPurchased}
+                    onClick={isInLibrary ? undefined : handleBuyClick}
+                    disabled={isInLibrary}
                   >
-                    {isInLibrary 
-                      ? 'In Library'
-                      : isPurchased
-                        ? 'Purchased'
-                        : `Buy for ${priceDisplay}`
-                    }
+                    {isInLibrary ? 'In Library' : `Buy for ${priceDisplay}`}
                   </Button>
                 )}
                 <div className="flex w-full gap-2">
@@ -309,15 +306,15 @@ const BookDetails = () => {
                     variant="outline" 
                     size="lg" 
                     className={`flex-1 rounded-lg ${
-                      isInLibrary || isPurchased
+                      isInLibrary
                         ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100' 
                         : isInWishlist 
                           ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
                           : ''
                     }`}
-                    onClick={isInLibrary || isPurchased ? () => navigate(bookReadUrl(book)) : handleWishlistAction}
+                    onClick={isInLibrary ? () => navigate(bookReadUrl(book)) : handleWishlistAction}
                   >
-                    {isInLibrary || isPurchased ? (
+                    {isInLibrary ? (
                       <>
                         <BookOpen className="w-4 h-4 mr-2 text-green-700" />
                         Read
